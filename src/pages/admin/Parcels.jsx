@@ -10,6 +10,20 @@ import {
 import { Document, Page, Text, View, StyleSheet, PDFViewer } from '@react-pdf/renderer';
 import classNames from 'classnames';
 
+// Create styles for PDF
+const styles = StyleSheet.create({
+  page: {
+    padding: 30,
+    alignItems: 'center',
+    justifyContent: 'center'
+  },
+  text: {
+    marginBottom: 10,
+    fontSize: 14,
+    textAlign: 'center'
+  }
+});
+
 const Parcels = () => {
   const [parcels, setParcels] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -108,9 +122,9 @@ const Parcels = () => {
     localStorage.setItem('notifications', JSON.stringify(notifications));
   };
 
-  const handlePrintLabel = (parcelId) => {
-    // Implement print functionality
-    console.log('Printing label for parcel:', parcelId);
+  const handlePrintLabel = (parcel) => {
+    setSelectedParcel(parcel);
+    setShowPrintModal(true);
   };
 
   const filteredParcels = parcels.filter(parcel => {
@@ -233,7 +247,7 @@ const Parcels = () => {
                           Status
                         </button>
                         <button
-                          onClick={() => handlePrintLabel(parcel.id)}
+                          onClick={() => handlePrintLabel(parcel)}
                           className="text-blue-600 hover:text-blue-900"
                           title="Print Parcel Label"
                         >
@@ -294,6 +308,34 @@ const Parcels = () => {
                 )}
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Print Modal */}
+      {showPrintModal && selectedParcel && (
+        <div className="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-[600px] h-[400px]">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-medium">Print Label</h3>
+              <button
+                onClick={() => setShowPrintModal(false)}
+                className="text-gray-400 hover:text-gray-500"
+              >
+                <XMarkIcon className="h-6 w-6" />
+              </button>
+            </div>
+            <PDFViewer style={{width: '100%', height: '300px'}}>
+              <Document>
+                <Page size="A6" style={styles.page}>
+                  <View>
+                    <Text style={styles.text}>Parcel ID: {selectedParcel.id}</Text>
+                    <Text style={styles.text}>Destination: {selectedParcel.destinationCity}</Text>
+                    <Text style={styles.text}>Receiver: {selectedParcel.receiverName}</Text>
+                  </View>
+                </Page>
+              </Document>
+            </PDFViewer>
           </div>
         </div>
       )}
