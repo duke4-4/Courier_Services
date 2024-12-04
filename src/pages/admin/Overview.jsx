@@ -56,51 +56,114 @@ const Overview = () => {
   });
 
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [lastRefreshed, setLastRefreshed] = useState(new Date());
+  const [lastParcelCount, setLastParcelCount] = useState(0);
 
-  const loadData = () => {
+  const loadData = async () => {
     setIsRefreshing(true);
-    // In a real app, this would be an API call
-    const parcels = JSON.parse(localStorage.getItem('parcels') || '[]');
-    const users = JSON.parse(localStorage.getItem('users') || '[]');
     
-    setStats({
-      totalParcels: parcels.length,
-      activeParcels: parcels.filter(p => p.status !== 'delivered').length,
-      totalRevenue: parcels.reduce((acc, curr) => acc + curr.amount, 0),
-      totalUsers: users.length,
-    });
+    try {
+      // Get all parcels
+      const parcels = JSON.parse(localStorage.getItem('parcels') || '[]');
+      const users = JSON.parse(localStorage.getItem('users') || '[]');
+      
+      // Check if there are new parcels
+      if (parcels.length > lastParcelCount) {
+        // Add notification for new parcels
+        const newParcelsCount = parcels.length - lastParcelCount;
+        const notification = {
+          id: `notif-${Date.now()}`,
+          userId: 'admin@hot.co.zw',
+          title: 'New Parcels',
+          message: `${newParcelsCount} new parcel${newParcelsCount > 1 ? 's' : ''} received`,
+          createdAt: new Date().toISOString(),
+        };
+        
+        const notifications = JSON.parse(localStorage.getItem('notifications') || '[]');
+        notifications.push(notification);
+        localStorage.setItem('notifications', JSON.stringify(notifications));
+      }
+      
+      // Update last parcel count
+      setLastParcelCount(parcels.length);
+      
+      // Calculate stats
+      const totalRevenue = parcels.reduce((acc, curr) => acc + curr.amount, 0);
+      const activeParcels = parcels.filter(p => p.status !== 'delivered').length;
+      
+      // Update stats
+      setStats({
+        totalParcels: parcels.length,
+        activeParcels: activeParcels,
+        totalRevenue: totalRevenue,
+        totalUsers: users.length,
+      });
 
-    // Generate monthly data for the graph
-    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    const currentMonth = new Date().getMonth();
-    const last6Months = months.slice(currentMonth - 5, currentMonth + 1);
+      // Generate monthly data for the graph
+      const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      const currentMonth = new Date().getMonth();
+      const last6Months = months.slice(currentMonth - 5, currentMonth + 1);
 
-    setMonthlyData({
-      labels: last6Months,
-      datasets: [
-        {
-          label: 'Revenue ($)',
-          data: last6Months.map(() => Math.floor(Math.random() * 10000)), // Sample data
-          borderColor: 'rgb(234, 88, 12)',
-          tension: 0.1
-        },
-        {
-          label: 'Deliveries',
-          data: last6Months.map(() => Math.floor(Math.random() * 100)), // Sample data
-          borderColor: 'rgb(59, 130, 246)',
-          tension: 0.1
-        }
-      ]
-    });
+      // Group parcels by month
+      const monthlyParcels = parcels.reduce((acc, parcel) => {
+        const month = new Date(parcel.createdAt).getMonth();
+        acc[month] = (acc[month] || 0) + 1;
+        return acc;
+      }, {});
 
-    setTimeout(() => {
-      setIsRefreshing(false);
-    }, 1000);
+      const monthlyRevenue = parcels.reduce((acc, parcel) => {
+        const month = new Date(parcel.createdAt).getMonth();
+        acc[month] = (acc[month] || 0) + parcel.amount;
+        return acc;
+      }, {});
+
+      setMonthlyData({
+        labels: last6Months,
+        datasets: [
+          {
+            label: 'Revenue ($)',
+            data: last6Months.map((_, index) => {
+              const monthIndex = (currentMonth - 5 + index + 12) % 12;
+              return monthlyRevenue[monthIndex] || 0;
+            }),
+            borderColor: 'rgb(234, 88, 12)',
+            tension: 0.1
+          },
+          {
+            label: 'Deliveries',
+            data: last6Months.map((_, index) => {
+              const monthIndex = (currentMonth - 5 + index + 12) % 12;
+              return monthlyParcels[monthIndex] || 0;
+            }),
+            borderColor: 'rgb(59, 130, 246)',
+            tension: 0.1
+          }
+        ]
+      });
+
+      setLastRefreshed(new Date());
+    } catch (error) {
+      console.error('Error loading data:', error);
+    } finally {
+      setTimeout(() => {
+        setIsRefreshing(false);
+      }, 500);
+    }
   };
 
+  // Initial load
   useEffect(() => {
     loadData();
   }, []);
+
+  // Set up auto-refresh every 30 seconds
+  useEffect(() => {
+    const interval = setInterval(() => {
+      loadData();
+    }, 30000);
+
+    return () => clearInterval(interval);
+  }, [lastParcelCount]); // Added lastParcelCount as dependency
 
   const cards = [
     { name: 'Total Parcels', value: stats.totalParcels, icon: ChartPieIcon },

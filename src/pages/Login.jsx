@@ -1,15 +1,17 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { EnvelopeIcon, LockClosedIcon } from '@heroicons/react/24/outline/index.js';
 import hotLogo from '../assets/Logoo.png';
 
 const Login = ({ setUser }) => {
+  const location = useLocation();
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
     email: '',
     password: '',
   });
   const [error, setError] = useState('');
+  const [successMessage, setSuccessMessage] = useState(location.state?.message || '');
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -31,17 +33,43 @@ const Login = ({ setUser }) => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col justify-center items-center py-12 sm:px-6 lg:px-8">
-      <div className="w-full sm:mx-auto sm:max-w-md relative">
-        <div className="absolute -top-24 left-1/2 transform -translate-x-1/2">
+    <div className="min-h-screen bg-gradient-to-br from-orange-50 to-orange-100 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
+      <div className="sm:mx-auto sm:w-full sm:max-w-md">
+        <div className="flex justify-center">
           <img
-            className="h-48 w-auto"
+            className="h-24 w-auto"
             src={hotLogo}
             alt="Hot Courier Services"
           />
         </div>
+        <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
+          Sign in to your account
+        </h2>
+        <p className="mt-2 text-center text-sm text-gray-600">
+          Or{' '}
+          <Link to="/signup" className="font-medium text-orange-600 hover:text-orange-500">
+            create a new account
+          </Link>
+        </p>
+      </div>
 
-        <div className="bg-white mt-24 py-8 px-4 shadow-2xl sm:rounded-xl sm:px-10">
+      <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
+        <div className="bg-white py-8 px-4 shadow-2xl sm:rounded-lg sm:px-10">
+          {successMessage && (
+            <div className="mb-4 bg-green-50 border-l-4 border-green-400 p-4">
+              <div className="flex">
+                <div className="flex-shrink-0">
+                  <svg className="h-5 w-5 text-green-400" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                  </svg>
+                </div>
+                <div className="ml-3">
+                  <p className="text-sm text-green-700">{successMessage}</p>
+                </div>
+              </div>
+            </div>
+          )}
+
           <form className="space-y-6" onSubmit={handleSubmit}>
             {error && (
               <div className="bg-red-50 border-l-4 border-red-400 p-4">
@@ -146,14 +174,17 @@ const Login = ({ setUser }) => {
                 <div className="w-full border-t border-gray-300" />
               </div>
               <div className="relative flex justify-center text-sm">
-                <span className="px-2 bg-white text-gray-500">Need help?</span>
+                <span className="px-2 bg-white text-gray-500">New to Hot Courier?</span>
               </div>
             </div>
 
             <div className="mt-6 text-center">
-              <a href="#" className="text-sm font-medium text-orange-600 hover:text-orange-500">
-                Contact support
-              </a>
+              <Link
+                to="/signup"
+                className="text-sm font-medium text-orange-600 hover:text-orange-500"
+              >
+                Create an account
+              </Link>
             </div>
           </div>
         </div>

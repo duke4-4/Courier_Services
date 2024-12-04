@@ -1,6 +1,7 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import Login from './pages/Login';
+import SignUp from './pages/SignUp';
 import AdminDashboard from './pages/admin/AdminDashboard';
 import SenderDashboard from './pages/sender/SenderDashboard';
 import ReceiverDashboard from './pages/receiver/ReceiverDashboard';
@@ -26,13 +27,14 @@ function App() {
 
   // Don't render until initialization is complete
   if (!initialized) {
-    return null; // or return a loading spinner
+    return null;
   }
 
   return (
     <Router>
       <Routes>
         <Route path="/login" element={<Login setUser={setUser} />} />
+        <Route path="/signup" element={<SignUp />} />
         
         <Route
           path="/admin/*"
