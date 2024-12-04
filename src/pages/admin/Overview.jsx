@@ -5,7 +5,8 @@ import {
   TruckIcon, 
   CurrencyDollarIcon, 
   UsersIcon,
-  DocumentChartBarIcon
+  DocumentChartBarIcon,
+  ArrowPathIcon
 } from '@heroicons/react/24/outline';
 import { Line } from 'react-chartjs-2';
 import {
@@ -54,7 +55,10 @@ const Overview = () => {
     ]
   });
 
-  useEffect(() => {
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  const loadData = () => {
+    setIsRefreshing(true);
     // In a real app, this would be an API call
     const parcels = JSON.parse(localStorage.getItem('parcels') || '[]');
     const users = JSON.parse(localStorage.getItem('users') || '[]');
@@ -88,6 +92,14 @@ const Overview = () => {
         }
       ]
     });
+
+    setTimeout(() => {
+      setIsRefreshing(false);
+    }, 1000);
+  };
+
+  useEffect(() => {
+    loadData();
   }, []);
 
   const cards = [
@@ -103,7 +115,17 @@ const Overview = () => {
         <div className="sm:flex-auto">
           <h1 className="text-2xl font-semibold text-gray-900">Dashboard Overview</h1>
         </div>
-        <div className="mt-4 sm:mt-0 sm:ml-16 sm:flex-none">
+        <div className="mt-4 sm:mt-0 sm:ml-4 sm:flex-none flex space-x-4">
+          <button
+            onClick={loadData}
+            disabled={isRefreshing}
+            className={`inline-flex items-center justify-center rounded-md border border-transparent ${
+              isRefreshing ? 'bg-gray-400' : 'bg-green-600 hover:bg-green-700'
+            } px-4 py-2 text-sm font-medium text-white shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 sm:w-auto`}
+          >
+            <ArrowPathIcon className={`-ml-1 mr-2 h-5 w-5 ${isRefreshing ? 'animate-spin' : ''}`} />
+            {isRefreshing ? 'Refreshing...' : 'Refresh Data'}
+          </button>
           <Link to="/admin/reports">
             <button className="inline-flex items-center justify-center rounded-md border border-transparent bg-orange-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 sm:w-auto">
               <DocumentChartBarIcon className="-ml-1 mr-2 h-5 w-5" />
