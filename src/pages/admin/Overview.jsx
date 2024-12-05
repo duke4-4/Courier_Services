@@ -7,7 +7,7 @@ import {
   UsersIcon,
   DocumentChartBarIcon,
   ArrowPathIcon,
-  BoxIcon
+  ArchiveBoxIcon
 } from '@heroicons/react/24/outline';
 import { Line } from 'react-chartjs-2';
 import {
@@ -167,7 +167,7 @@ const Overview = () => {
   }, [lastParcelCount]); // Added lastParcelCount as dependency
 
   const cards = [
-    { name: 'Total Parcels', value: stats.totalParcels, icon: ChartPieIcon },
+    { name: 'Total Parcels', value: stats.totalParcels, icon: ArchiveBoxIcon },
     { name: 'Active Deliveries', value: stats.activeParcels, icon: TruckIcon },
     { name: 'Total Revenue', value: `$${stats.totalRevenue}`, icon: CurrencyDollarIcon },
     { name: 'Total Users', value: stats.totalUsers, icon: UsersIcon },

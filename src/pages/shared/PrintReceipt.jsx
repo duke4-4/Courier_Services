@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { PDFViewer, Document, Page, Text, View, StyleSheet, Image } from '@react-pdf/renderer';
 import { XMarkIcon } from '@heroicons/react/24/outline';
+import logoImage from '../../assets/Logoo.png';
 
 // Create styles for PDF
 const styles = StyleSheet.create({
@@ -20,18 +21,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   logo: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    width: 150,
+    height: 70,
+    objectFit: 'contain',
   },
-  logoText: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#EA580C', // orange-600
-  },
-  logoSubText: {
-    fontSize: 16,
-    color: '#4B5563', // gray-600
-    marginLeft: 4,
+  dateSection: {
+    alignItems: 'flex-end',
   },
   title: {
     fontSize: 20,
@@ -120,11 +115,11 @@ const ParcelPDF = ({ parcel }) => (
     <Page size="A4" style={styles.page}>
       <View style={styles.header}>
         <View style={styles.headerContent}>
-          <View style={styles.logo}>
-            <Text style={styles.logoText}>HOT</Text>
-            <Text style={styles.logoSubText}>Courier</Text>
-          </View>
-          <View>
+          <Image
+            src={logoImage}
+            style={styles.logo}
+          />
+          <View style={styles.dateSection}>
             <Text style={styles.subtitle}>Date: {new Date().toLocaleDateString()}</Text>
             <Text style={styles.subtitle}>Receipt #{parcel.id}</Text>
           </View>
