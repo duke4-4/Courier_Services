@@ -13,3 +13,7 @@ Currently, two official plugins are available:
 - add mark as received
 - add mark as paid
 - add notifications
+- add admin dashboard
+- add sender dashboard
+- add receiver dashboard
+- add auth
