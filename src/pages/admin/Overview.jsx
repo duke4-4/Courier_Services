@@ -6,7 +6,8 @@ import {
   CurrencyDollarIcon, 
   UsersIcon,
   DocumentChartBarIcon,
-  ArrowPathIcon
+  ArrowPathIcon,
+  BoxIcon
 } from '@heroicons/react/24/outline';
 import { Line } from 'react-chartjs-2';
 import {

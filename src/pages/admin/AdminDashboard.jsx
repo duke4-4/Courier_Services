@@ -6,6 +6,7 @@ import {
   DocumentTextIcon as DocumentReportIcon,
   Cog6ToothIcon as CogIcon,
   BellIcon,
+  PrinterIcon,
 } from '@heroicons/react/24/outline';
 import DashboardLayout from '../../components/DashboardLayout';
 import Overview from './Overview';
@@ -13,6 +14,7 @@ import Parcels from './Parcels';
 import Reports from './Reports';
 import Settings from '../../components/Settings';
 import Notifications from '../../components/Notifications';
+import PrintReceipt from '../shared/PrintReceipt';
 
 const navigation = [
   { name: 'Dashboard', href: '/admin', icon: HomeIcon },
@@ -31,6 +33,7 @@ const AdminDashboard = ({ user, setUser }) => {
         <Route path="/reports" element={<Reports />} />
         <Route path="/settings" element={<Settings user={user} />} />
         <Route path="/notifications" element={<Notifications user={user} />} />
+        <Route path="/print" element={<PrintReceipt />} />
       </Routes>
     </DashboardLayout>
   );

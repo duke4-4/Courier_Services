@@ -9,6 +9,7 @@ import {
 } from '@heroicons/react/24/outline';
 import { Document, Page, Text, View, StyleSheet, PDFViewer } from '@react-pdf/renderer';
 import classNames from 'classnames';
+import { useNavigate } from 'react-router-dom';
 
 // Create styles for PDF
 const styles = StyleSheet.create({
@@ -25,6 +26,7 @@ const styles = StyleSheet.create({
 });
 
 const Parcels = () => {
+  const navigate = useNavigate();
   const [parcels, setParcels] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
@@ -32,6 +34,7 @@ const Parcels = () => {
   const [selectedParcel, setSelectedParcel] = useState(null);
   const [showPrintModal, setShowPrintModal] = useState(false);
   const [showStatusModal, setShowStatusModal] = useState(false);
+  const [filterPayment, setFilterPayment] = useState('all');
 
   useEffect(() => {
     loadData();
@@ -123,8 +126,35 @@ const Parcels = () => {
   };
 
   const handlePrintLabel = (parcel) => {
-    setSelectedParcel(parcel);
-    setShowPrintModal(true);
+    // Format the parcel data to match the expected structure
+    const formattedParcel = {
+      ...parcel,
+      // Ensure these fields exist and are properly formatted
+      senderName: parcel.senderName || parcel.sender,
+      senderEmail: parcel.senderEmail || parcel.sender,
+      receiverName: parcel.receiverName || parcel.receiver,
+      receiverEmail: parcel.receiverEmail,
+      receiverPhone: parcel.receiverPhone,
+      destination: parcel.destination || parcel.destinationCity,
+      weight: parcel.weight,
+      vehicleType: parcel.vehicleType,
+      paymentMethod: parcel.paymentMethod,
+      amount: parcel.amount,
+      status: parcel.status,
+      createdAt: parcel.createdAt,
+      isPaid: parcel.isPaid,
+      paidAt: parcel.paidAt,
+      paidBy: parcel.paidBy,
+      receivedAt: parcel.receivedAt,
+      receivedBy: parcel.receivedBy,
+      description: parcel.description
+    };
+
+    // Store the formatted parcel temporarily in localStorage
+    localStorage.setItem('temp_print_parcel', JSON.stringify(formattedParcel));
+    
+    // Navigate to print view
+    navigate(`/admin/print?parcelId=${parcel.id}`);
   };
 
   const filteredParcels = parcels.filter(parcel => {
@@ -133,8 +163,12 @@ const Parcels = () => {
       parcel.receiver.toLowerCase().includes(searchTerm.toLowerCase());
     
     const matchesStatus = filterStatus === 'all' || parcel.status === filterStatus;
+    const matchesPayment = filterPayment === 'all' ||
+      (filterPayment === 'paid' && parcel.isPaid) ||
+      (filterPayment === 'unpaid' && !parcel.isPaid) ||
+      (filterPayment === 'cash' && parcel.paymentMethod === 'cash');
     
-    return matchesSearch && matchesStatus;
+    return matchesSearch && matchesStatus && matchesPayment;
   });
 
   return (
@@ -182,6 +216,16 @@ const Parcels = () => {
                     <option value="in_transit">In Transit</option>
                     <option value="delivered">Delivered</option>
                   </select>
+                  <select
+                    value={filterPayment}
+                    onChange={(e) => setFilterPayment(e.target.value)}
+                    className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-orange-500 focus:border-orange-500 sm:text-sm rounded-md"
+                  >
+                    <option value="all">All Payments</option>
+                    <option value="paid">Paid</option>
+                    <option value="unpaid">Unpaid</option>
+                    <option value="cash">Cash on Delivery</option>
+                  </select>
                 </div>
               </div>
               <table className="min-w-full divide-y divide-gray-300">
@@ -201,6 +245,9 @@ const Parcels = () => {
                     </th>
                     <th className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
                       Amount
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Payment Status
                     </th>
                     <th className="relative py-3.5 pl-3 pr-4 sm:pr-6">
                       <span className="sr-only">Actions</span>
@@ -233,6 +280,26 @@ const Parcels = () => {
                       <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
                         ${parcel.amount}
                       </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        <span className={`inline-flex rounded-full px-2 text-xs font-semibold leading-5 ${
+                          parcel.isPaid 
+                            ? 'bg-green-100 text-green-800' 
+                            : parcel.paymentMethod === 'prepaid'
+                            ? 'bg-red-100 text-red-800'
+                            : 'bg-yellow-100 text-yellow-800'
+                        }`}>
+                          {parcel.isPaid 
+                            ? 'Paid' 
+                            : parcel.paymentMethod === 'prepaid'
+                            ? 'Payment Failed'
+                            : 'Cash on Delivery'}
+                        </span>
+                        {parcel.isPaid && (
+                          <span className="ml-2 text-xs text-gray-500">
+                            {new Date(parcel.paidAt).toLocaleDateString()}
+                          </span>
+                        )}
+                      </td>
                       <td className="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
                         <button
                           onClick={() => {
@@ -263,12 +330,15 @@ const Parcels = () => {
         </div>
       </div>
 
-      {/* Status Update Modal */}
+      {/* Status Update Modal with Detailed Information */}
       {showStatusModal && selectedParcel && (
         <div className="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-[400px]">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-medium">Update Parcel Status</h3>
+          <div className="bg-white rounded-lg p-6 max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-center mb-6">
+              <div>
+                <h3 className="text-lg font-medium text-gray-900">Parcel Details</h3>
+                <p className="mt-1 text-sm text-gray-500">ID: {selectedParcel.id}</p>
+              </div>
               <button
                 onClick={() => setShowStatusModal(false)}
                 className="text-gray-400 hover:text-gray-500"
@@ -276,11 +346,110 @@ const Parcels = () => {
                 <XMarkIcon className="h-6 w-6" />
               </button>
             </div>
-            <div className="space-y-4">
-              <div>
-                <p className="text-sm text-gray-500">Current Status: {selectedParcel.status}</p>
-                <p className="text-sm text-gray-500">Payment Type: {selectedParcel.paymentType}</p>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Sender Information */}
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <h4 className="text-base font-medium text-gray-900 mb-4">Sender Information</h4>
+                <dl className="space-y-2">
+                  <div>
+                    <dt className="text-sm font-medium text-gray-500">Name</dt>
+                    <dd className="mt-1 text-sm text-gray-900">{selectedParcel.senderName}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-sm font-medium text-gray-500">Email</dt>
+                    <dd className="mt-1 text-sm text-gray-900">{selectedParcel.senderEmail}</dd>
+                  </div>
+                </dl>
               </div>
+
+              {/* Receiver Information */}
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <h4 className="text-base font-medium text-gray-900 mb-4">Receiver Information</h4>
+                <dl className="space-y-2">
+                  <div>
+                    <dt className="text-sm font-medium text-gray-500">Name</dt>
+                    <dd className="mt-1 text-sm text-gray-900">{selectedParcel.receiverName}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-sm font-medium text-gray-500">Email</dt>
+                    <dd className="mt-1 text-sm text-gray-900">{selectedParcel.receiverEmail}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-sm font-medium text-gray-500">Phone</dt>
+                    <dd className="mt-1 text-sm text-gray-900">{selectedParcel.receiverPhone}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-sm font-medium text-gray-500">Destination</dt>
+                    <dd className="mt-1 text-sm text-gray-900">{selectedParcel.destination}</dd>
+                  </div>
+                </dl>
+              </div>
+
+              {/* Parcel Details */}
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <h4 className="text-base font-medium text-gray-900 mb-4">Parcel Details</h4>
+                <dl className="space-y-2">
+                  <div>
+                    <dt className="text-sm font-medium text-gray-500">Weight</dt>
+                    <dd className="mt-1 text-sm text-gray-900">{selectedParcel.weight} kg</dd>
+                  </div>
+                  <div>
+                    <dt className="text-sm font-medium text-gray-500">Vehicle Type</dt>
+                    <dd className="mt-1 text-sm text-gray-900">{selectedParcel.vehicleType}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-sm font-medium text-gray-500">Created Date</dt>
+                    <dd className="mt-1 text-sm text-gray-900">
+                      {new Date(selectedParcel.createdAt).toLocaleString()}
+                    </dd>
+                  </div>
+                </dl>
+              </div>
+
+              {/* Payment Information */}
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <h4 className="text-base font-medium text-gray-900 mb-4">Payment Information</h4>
+                <dl className="space-y-2">
+                  <div>
+                    <dt className="text-sm font-medium text-gray-500">Payment Method</dt>
+                    <dd className="mt-1 text-sm text-gray-900">
+                      {selectedParcel.paymentMethod === 'prepaid' ? 'Paid Online' : 'Cash Payment'}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="text-sm font-medium text-gray-500">Amount</dt>
+                    <dd className="mt-1 text-sm font-medium text-orange-600">
+                      ${selectedParcel.amount.toFixed(2)}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="text-sm font-medium text-gray-500">Payment Status</dt>
+                    <dd className="mt-1">
+                      <span className={`inline-flex rounded-full px-2 text-xs font-semibold leading-5 ${
+                        selectedParcel.isPaid 
+                          ? 'bg-green-100 text-green-800' 
+                          : 'bg-yellow-100 text-yellow-800'
+                      }`}>
+                        {selectedParcel.isPaid ? 'Paid' : 'Pending Payment'}
+                      </span>
+                    </dd>
+                  </div>
+                  {selectedParcel.isPaid && (
+                    <div>
+                      <dt className="text-sm font-medium text-gray-500">Paid At</dt>
+                      <dd className="mt-1 text-sm text-gray-900">
+                        {new Date(selectedParcel.paidAt).toLocaleString()}
+                      </dd>
+                    </div>
+                  )}
+                </dl>
+              </div>
+            </div>
+
+            {/* Status Update Section */}
+            <div className="mt-6 bg-gray-50 p-4 rounded-lg">
+              <h4 className="text-base font-medium text-gray-900 mb-4">Update Status</h4>
               <div className="flex flex-col space-y-2">
                 {selectedParcel.status === 'pending' && (
                   <button
@@ -298,44 +467,25 @@ const Parcels = () => {
                     Mark as Delivered
                   </button>
                 )}
-                {selectedParcel.status === 'delivered' && (
-                  <button
-                    onClick={() => updateParcelStatus(selectedParcel.id, 'received')}
-                    className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
-                  >
-                    Confirm Receipt
-                  </button>
-                )}
               </div>
             </div>
-          </div>
-        </div>
-      )}
 
-      {/* Print Modal */}
-      {showPrintModal && selectedParcel && (
-        <div className="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-[600px] h-[400px]">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-medium">Print Label</h3>
+            {/* Action Buttons */}
+            <div className="mt-6 flex justify-end space-x-4">
               <button
-                onClick={() => setShowPrintModal(false)}
-                className="text-gray-400 hover:text-gray-500"
+                onClick={() => setShowStatusModal(false)}
+                className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50"
               >
-                <XMarkIcon className="h-6 w-6" />
+                Close
+              </button>
+              <button
+                onClick={() => handlePrintLabel(selectedParcel)}
+                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-orange-600 hover:bg-orange-700"
+              >
+                <PrinterIcon className="h-5 w-5 mr-2" />
+                Print Details
               </button>
             </div>
-            <PDFViewer style={{width: '100%', height: '300px'}}>
-              <Document>
-                <Page size="A6" style={styles.page}>
-                  <View>
-                    <Text style={styles.text}>Parcel ID: {selectedParcel.id}</Text>
-                    <Text style={styles.text}>Destination: {selectedParcel.destinationCity}</Text>
-                    <Text style={styles.text}>Receiver: {selectedParcel.receiverName}</Text>
-                  </View>
-                </Page>
-              </Document>
-            </PDFViewer>
           </div>
         </div>
       )}

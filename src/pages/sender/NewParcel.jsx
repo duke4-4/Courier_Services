@@ -1,37 +1,71 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ChatBubbleLeftIcon, TruckIcon, CreditCardIcon, ClockIcon } from '@heroicons/react/24/outline';
+import { 
+  UserIcon, 
+  EnvelopeIcon, 
+  PhoneIcon, 
+  TruckIcon,
+  CurrencyDollarIcon,
+  XMarkIcon,
+  PrinterIcon
+} from '@heroicons/react/24/outline';
+
+const vehicleTypes = [
+  { id: 'motorcycle', name: 'Motorcycle', multiplier: 1, description: 'For small packages up to 20kg' },
+  { id: 'car', name: 'Car', multiplier: 1.5, description: 'For medium packages up to 50kg' },
+  { id: 'van', name: 'Van', multiplier: 2, description: 'For large packages up to 200kg' },
+  { id: 'truck', name: 'Truck', multiplier: 3, description: 'For extra large packages up to 1000kg' },
+  { id: 'refrigerated', name: 'Refrigerated Truck', multiplier: 4, description: 'For temperature-controlled items' }
+];
+
+const calculateCharge = (weight, vehicleType) => {
+  const baseRate = 10; // Base rate per kg
+  const vehicle = vehicleTypes.find(v => v.id === vehicleType);
+  return weight * baseRate * vehicle.multiplier;
+};
 
 const NewParcel = ({ user }) => {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
     receiverName: '',
-    description: '',
-    dispatchCity: '',
-    destinationCity: '', 
-    vehicleType: '',
-    paymentType: 'prepaid',
+    receiverEmail: '',
+    receiverPhone: '',
+    destination: '',
+    weight: '',
+    vehicleType: 'van',
+    paymentMethod: 'prepaid',
+    description: ''
   });
+
+  const [calculatedCharge, setCalculatedCharge] = useState(0);
+  const [showConfirmation, setShowConfirmation] = useState(false);
+  const [newParcelId, setNewParcelId] = useState(null);
+
+  useEffect(() => {
+    if (formData.weight && formData.vehicleType) {
+      const charge = calculateCharge(parseFloat(formData.weight), formData.vehicleType);
+      setCalculatedCharge(charge);
+    }
+  }, [formData.weight, formData.vehicleType]);
 
   const handleSubmit = (e) => {
     e.preventDefault();
     
-    // Generate unique parcel ID
-    const parcelId = `PCL${Date.now()}`;
+    const parcelId = `PCL${Date.now().toString().slice(-6)}`;
+    const isPrepaid = formData.paymentMethod === 'prepaid';
     
-    // Create new parcel object
     const newParcel = {
       id: parcelId,
-      sender: user.email,
-      receiver: formData.receiverName,
-      description: formData.description,
-      dispatchCity: formData.dispatchCity,
-      destinationCity: formData.destinationCity,
-      vehicleType: formData.vehicleType,
-      paymentType: formData.paymentType,
+      ...formData,
+      senderName: user.name,
+      senderEmail: user.email,
       status: 'pending',
-      amount: 50, // Example fixed amount
+      amount: calculatedCharge,
       createdAt: new Date().toISOString(),
+      weight: parseFloat(formData.weight),
+      isPaid: isPrepaid,
+      paidAt: isPrepaid ? new Date().toISOString() : null,
+      paidBy: isPrepaid ? user.email : null
     };
 
     // Save to localStorage
@@ -39,222 +73,282 @@ const NewParcel = ({ user }) => {
     parcels.push(newParcel);
     localStorage.setItem('parcels', JSON.stringify(parcels));
 
-    // Redirect to my parcels page
-    navigate('/sender/parcels');
+    // If prepaid, update revenue
+    if (isPrepaid) {
+      const currentRevenue = JSON.parse(localStorage.getItem('revenue') || '0');
+      const newRevenue = currentRevenue + calculatedCharge;
+      localStorage.setItem('revenue', JSON.stringify(newRevenue));
+    }
+
+    // Add notifications
+    const notifications = JSON.parse(localStorage.getItem('notifications') || '[]');
+    
+    // Notification for new parcel
+    notifications.push({
+      id: `notif-${Date.now()}`,
+      userId: 'admin@hot.co.zw',
+      title: 'New Parcel Created',
+      message: `New parcel ${parcelId} has been created by ${user.name}`,
+      createdAt: new Date().toISOString()
+    });
+
+    // Additional notification for prepaid payment
+    if (isPrepaid) {
+      notifications.push({
+        id: `notif-${Date.now() + 1}`,
+        userId: 'admin@hot.co.zw',
+        title: 'Payment Received',
+        message: `Payment of $${calculatedCharge.toFixed(2)} received for parcel ${parcelId}`,
+        createdAt: new Date().toISOString()
+      });
+    }
+
+    localStorage.setItem('notifications', JSON.stringify(notifications));
+
+    setNewParcelId(parcelId);
+    setShowConfirmation(true);
   };
 
-  const tips = [
-    {
-      icon: TruckIcon,
-      title: "Fast Delivery",
-      description: "Same day delivery available for local routes"
-    },
-    {
-      icon: CreditCardIcon, 
-      title: "Flexible Payment",
-      description: "Choose between prepaid or pay on delivery"
-    },
-    {
-      icon: ClockIcon,
-      title: "Real-time Tracking",
-      description: "Track your parcel status in real-time"
-    }
-  ];
+  const handlePrint = () => {
+    navigate(`/sender/print?parcelId=${newParcelId}`);
+  };
 
   return (
-    <div className="relative">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        
-        {/* Tips Cards */}
-        <div className="grid grid-cols-1 gap-6 sm:grid-cols-3 mb-8">
-          {tips.map((tip, index) => (
-            <div key={index} className="bg-white overflow-hidden shadow rounded-lg">
-              <div className="px-4 py-5 sm:p-6">
-                <div className="flex items-center">
-                  <div className="flex-shrink-0">
-                    <tip.icon className="h-6 w-6 text-orange-600" />
-                  </div>
-                  <div className="ml-4">
-                    <h3 className="text-lg font-medium text-gray-900">{tip.title}</h3>
-                    <p className="mt-1 text-sm text-gray-500">{tip.description}</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          ))}
+    <div className="max-w-4xl mx-auto">
+      <div className="bg-white shadow-lg rounded-lg overflow-hidden">
+        <div className="px-6 py-4 bg-orange-50 border-b border-orange-100">
+          <h2 className="text-2xl font-bold text-gray-900">Send New Parcel</h2>
+          <p className="mt-1 text-sm text-gray-600">Fill in the details to create a new parcel delivery</p>
         </div>
 
-        <div className="bg-white shadow-xl rounded-lg overflow-hidden">
-          <div className="md:grid md:grid-cols-3 md:gap-6">
-            <div className="md:col-span-1 bg-orange-50 p-8">
-              <h3 className="text-2xl font-bold text-gray-900">New Parcel</h3>
-              <p className="mt-4 text-gray-600">
-                Please fill in the details for your new parcel delivery. We ensure safe and timely delivery of your packages.
-              </p>
-              
-              <div className="mt-8">
-                <h4 className="text-lg font-semibold text-gray-900">Need Help?</h4>
-                <p className="mt-2 text-gray-600">Our support team is available 24/7 to assist you with any queries.</p>
+        <form onSubmit={handleSubmit} className="p-6 space-y-6">
+          {/* Receiver Details Section */}
+          <div className="bg-white p-6 rounded-lg border border-gray-200">
+            <h3 className="text-lg font-medium text-gray-900 mb-4">Receiver Details</h3>
+            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Name</label>
+                <div className="mt-1 relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <UserIcon className="h-5 w-5 text-gray-400" />
+                  </div>
+                  <input
+                    type="text"
+                    required
+                    className="pl-10 block w-full shadow-sm focus:ring-orange-500 focus:border-orange-500 sm:text-sm border-gray-300 rounded-md"
+                    value={formData.receiverName}
+                    onChange={(e) => setFormData({ ...formData, receiverName: e.target.value })}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Email</label>
+                <div className="mt-1 relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <EnvelopeIcon className="h-5 w-5 text-gray-400" />
+                  </div>
+                  <input
+                    type="email"
+                    required
+                    className="pl-10 block w-full shadow-sm focus:ring-orange-500 focus:border-orange-500 sm:text-sm border-gray-300 rounded-md"
+                    value={formData.receiverEmail}
+                    onChange={(e) => setFormData({ ...formData, receiverEmail: e.target.value })}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Phone</label>
+                <div className="mt-1 relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <PhoneIcon className="h-5 w-5 text-gray-400" />
+                  </div>
+                  <input
+                    type="tel"
+                    required
+                    className="pl-10 block w-full shadow-sm focus:ring-orange-500 focus:border-orange-500 sm:text-sm border-gray-300 rounded-md"
+                    value={formData.receiverPhone}
+                    onChange={(e) => setFormData({ ...formData, receiverPhone: e.target.value })}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Destination</label>
+                <select
+                  required
+                  className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-orange-500 focus:border-orange-500 sm:text-sm rounded-md"
+                  value={formData.destination}
+                  onChange={(e) => setFormData({ ...formData, destination: e.target.value })}
+                >
+                  <option value="">Select destination</option>
+                  <option value="harare">Harare</option>
+                  <option value="bulawayo">Bulawayo</option>
+                  <option value="gweru">Gweru</option>
+                  <option value="mutare">Mutare</option>
+                </select>
               </div>
             </div>
+          </div>
 
-            <div className="md:col-span-2">
-              <form onSubmit={handleSubmit} className="p-8">
-                <div className="space-y-6">
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700">
-                      Receiver Name
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      className="mt-1 focus:ring-orange-500 focus:border-orange-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-lg"
-                      value={formData.receiverName}
-                      onChange={(e) =>
-                        setFormData({ ...formData, receiverName: e.target.value })
-                      }
-                    />
-                  </div>
+          {/* Parcel Details Section */}
+          <div className="bg-white p-6 rounded-lg border border-gray-200">
+            <h3 className="text-lg font-medium text-gray-900 mb-4">Parcel Details</h3>
+            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Weight (kg)</label>
+                <input
+                  type="number"
+                  required
+                  min="0.1"
+                  step="0.1"
+                  className="mt-1 block w-full shadow-sm focus:ring-orange-500 focus:border-orange-500 sm:text-sm border-gray-300 rounded-md"
+                  value={formData.weight}
+                  onChange={(e) => setFormData({ ...formData, weight: e.target.value })}
+                />
+              </div>
 
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700">
-                      Description
-                    </label>
-                    <textarea
-                      required
-                      rows={3}
-                      className="mt-1 focus:ring-orange-500 focus:border-orange-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-lg"
-                      value={formData.description}
-                      onChange={(e) =>
-                        setFormData({ ...formData, description: e.target.value })
-                      }
-                    />
-                  </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Description</label>
+                <textarea
+                  className="mt-1 block w-full shadow-sm focus:ring-orange-500 focus:border-orange-500 sm:text-sm border-gray-300 rounded-md"
+                  rows="3"
+                  value={formData.description}
+                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                ></textarea>
+              </div>
+            </div>
+          </div>
 
-                  <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
-                    <div>
-                      <label className="block text-sm font-semibold text-gray-700">
-                        Dispatch City
-                      </label>
-                      <select
-                        required
-                        className="mt-1 block w-full py-2 px-3 border border-gray-300 bg-white rounded-lg shadow-sm focus:outline-none focus:ring-orange-500 focus:border-orange-500 sm:text-sm"
-                        value={formData.dispatchCity}
-                        onChange={(e) =>
-                          setFormData({ ...formData, dispatchCity: e.target.value })
-                        }
-                      >
-                        <option value="">Select City</option>
-                        <option value="harare">Harare</option>
-                        <option value="bulawayo">Bulawayo</option>
-                        <option value="gweru">Gweru</option>
-                        <option value="mutare">Mutare</option>
-                      </select>
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-semibold text-gray-700">
-                        Destination City
-                      </label>
-                      <select
-                        required
-                        className="mt-1 block w-full py-2 px-3 border border-gray-300 bg-white rounded-lg shadow-sm focus:outline-none focus:ring-orange-500 focus:border-orange-500 sm:text-sm"
-                        value={formData.destinationCity}
-                        onChange={(e) =>
-                          setFormData({
-                            ...formData,
-                            destinationCity: e.target.value,
-                          })
-                        }
-                      >
-                        <option value="">Select City</option>
-                        <option value="harare">Harare</option>
-                        <option value="bulawayo">Bulawayo</option>
-                        <option value="gweru">Gweru</option>
-                        <option value="mutare">Mutare</option>
-                      </select>
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700">
-                      Vehicle Type
-                    </label>
-                    <select
-                      required
-                      className="mt-1 block w-full py-2 px-3 border border-gray-300 bg-white rounded-lg shadow-sm focus:outline-none focus:ring-orange-500 focus:border-orange-500 sm:text-sm"
-                      value={formData.vehicleType}
-                      onChange={(e) =>
-                        setFormData({ ...formData, vehicleType: e.target.value })
-                      }
-                    >
-                      <option value="">Select Vehicle</option>
-                      <option value="motorcycle">Motorcycle</option>
-                      <option value="car">Car</option>
-                      <option value="van">Van</option>
-                      <option value="truck">Truck</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-3">
-                      Payment Type
-                    </label>
-                    <div className="space-y-4 sm:flex sm:space-y-0 sm:space-x-10">
-                      <div className="flex items-center">
-                        <input
-                          type="radio"
-                          name="payment-type"
-                          value="prepaid"
-                          checked={formData.paymentType === 'prepaid'}
-                          onChange={(e) =>
-                            setFormData({ ...formData, paymentType: e.target.value })
-                          }
-                          className="focus:ring-orange-500 h-4 w-4 text-orange-600 border-gray-300"
-                        />
-                        <label className="ml-3 block text-sm font-medium text-gray-700">
-                          Prepaid
-                        </label>
-                      </div>
-                      <div className="flex items-center">
-                        <input
-                          type="radio"
-                          name="payment-type"
-                          value="pay-on-delivery"
-                          checked={formData.paymentType === 'pay-on-delivery'}
-                          onChange={(e) =>
-                            setFormData({ ...formData, paymentType: e.target.value })
-                          }
-                          className="focus:ring-orange-500 h-4 w-4 text-orange-600 border-gray-300"
-                        />
-                        <label className="ml-3 block text-sm font-medium text-gray-700">
-                          Pay on Delivery
-                        </label>
-                      </div>
+          {/* Vehicle Selection */}
+          <div className="bg-white p-6 rounded-lg border border-gray-200">
+            <h3 className="text-lg font-medium text-gray-900 mb-4">Vehicle Type</h3>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {vehicleTypes.map((vehicle) => (
+                <div
+                  key={vehicle.id}
+                  className={`relative rounded-lg border p-4 cursor-pointer ${
+                    formData.vehicleType === vehicle.id
+                      ? 'border-orange-500 bg-orange-50'
+                      : 'border-gray-300'
+                  }`}
+                  onClick={() => setFormData({ ...formData, vehicleType: vehicle.id })}
+                >
+                  <div className="flex items-center">
+                    <TruckIcon className="h-6 w-6 text-gray-400" />
+                    <div className="ml-3">
+                      <h4 className="text-sm font-medium text-gray-900">{vehicle.name}</h4>
+                      <p className="text-xs text-gray-500">{vehicle.description}</p>
                     </div>
                   </div>
                 </div>
+              ))}
+            </div>
+          </div>
 
-                <div className="mt-6">
-                  <button
-                    type="submit"
-                    className="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-orange-600 hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500"
-                  >
-                    Create Parcel
-                  </button>
+          {/* Payment Method */}
+          <div className="bg-white p-6 rounded-lg border border-gray-200">
+            <h3 className="text-lg font-medium text-gray-900 mb-4">Payment Method</h3>
+            <div className="space-y-4">
+              <div className="flex items-center">
+                <input
+                  id="prepaid"
+                  name="paymentMethod"
+                  type="radio"
+                  value="prepaid"
+                  checked={formData.paymentMethod === 'prepaid'}
+                  onChange={(e) => setFormData({ ...formData, paymentMethod: e.target.value })}
+                  className="focus:ring-orange-500 h-4 w-4 text-orange-600 border-gray-300"
+                />
+                <label htmlFor="prepaid" className="ml-3">
+                  <span className="block text-sm font-medium text-gray-700">Pay Now</span>
+                  <span className="block text-sm text-gray-500">Pay before delivery</span>
+                </label>
+              </div>
+              <div className="flex items-center">
+                <input
+                  id="cash"
+                  name="paymentMethod"
+                  type="radio"
+                  value="cash"
+                  checked={formData.paymentMethod === 'cash'}
+                  onChange={(e) => setFormData({ ...formData, paymentMethod: e.target.value })}
+                  className="focus:ring-orange-500 h-4 w-4 text-orange-600 border-gray-300"
+                />
+                <label htmlFor="cash" className="ml-3">
+                  <span className="block text-sm font-medium text-gray-700">Cash Payment</span>
+                  <span className="block text-sm text-gray-500">Pay with cash on delivery</span>
+                </label>
+              </div>
+            </div>
+          </div>
+
+          {/* Charge Display */}
+          {calculatedCharge > 0 && (
+            <div className="bg-orange-50 p-6 rounded-lg border border-orange-200">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-lg font-medium text-gray-900">Delivery Charge</h3>
+                  <p className="text-sm text-gray-600">Based on weight and vehicle type</p>
                 </div>
-              </form>
+                <div className="text-right">
+                  <p className="text-3xl font-bold text-orange-600">${calculatedCharge.toFixed(2)}</p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <div className="flex justify-end">
+            <button
+              type="submit"
+              className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-orange-600 hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500"
+            >
+              Create Parcel
+            </button>
+          </div>
+        </form>
+      </div>
+
+      {/* Confirmation Modal */}
+      {showConfirmation && (
+        <div className="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-8 max-w-md w-full">
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-lg font-medium text-gray-900">Parcel Created Successfully</h3>
+              <button
+                onClick={() => setShowConfirmation(false)}
+                className="text-gray-400 hover:text-gray-500"
+              >
+                <XMarkIcon className="h-6 w-6" />
+              </button>
+            </div>
+            <div className="mb-6">
+              <p className="text-sm text-gray-600">
+                Your parcel has been created with ID: <span className="font-medium">{newParcelId}</span>
+              </p>
+              <p className="mt-2 text-sm text-gray-600">
+                Total charge: <span className="font-medium">${calculatedCharge.toFixed(2)}</span>
+              </p>
+            </div>
+            <div className="flex justify-end space-x-4">
+              <button
+                onClick={() => setShowConfirmation(false)}
+                className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
+              >
+                Close
+              </button>
+              <button
+                onClick={handlePrint}
+                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-orange-600 hover:bg-orange-700"
+              >
+                <PrinterIcon className="h-5 w-5 mr-2" />
+                Print Details
+              </button>
             </div>
           </div>
         </div>
-      </div>
-
-      {/* Contact Widget */}
-      <div className="fixed bottom-8 right-8">
-        <button className="bg-orange-600 p-4 text-white rounded-full shadow-lg hover:bg-orange-700 transition-colors duration-200">
-          <ChatBubbleLeftIcon className="h-6 w-6" />
-        </button>
-      </div>
+      )}
     </div>
   );
 };

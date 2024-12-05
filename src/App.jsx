@@ -1,40 +1,32 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import Login from './pages/Login';
-import SignUp from './pages/SignUp';
 import AdminDashboard from './pages/admin/AdminDashboard';
 import SenderDashboard from './pages/sender/SenderDashboard';
 import ReceiverDashboard from './pages/receiver/ReceiverDashboard';
 import ProtectedRoute from './components/ProtectedRoute';
 import { initializeData } from './utils/initializeData';
 import './App.css';
+import TrackParcel from './pages/TrackParcel';
 
 function App() {
   const [user, setUser] = useState(null);
-  const [initialized, setInitialized] = useState(false);
 
   useEffect(() => {
-    // Initialize data first
+    // Initialize sample data
     initializeData();
-    setInitialized(true);
     
-    // Then check for logged in user
+    // Check for logged in user
     const loggedInUser = localStorage.getItem('user');
     if (loggedInUser) {
       setUser(JSON.parse(loggedInUser));
     }
   }, []);
 
-  // Don't render until initialization is complete
-  if (!initialized) {
-    return null;
-  }
-
   return (
     <Router>
       <Routes>
         <Route path="/login" element={<Login setUser={setUser} />} />
-        <Route path="/signup" element={<SignUp />} />
         
         <Route
           path="/admin/*"
@@ -62,6 +54,8 @@ function App() {
             </ProtectedRoute>
           }
         />
+        
+        <Route path="/track" element={<TrackParcel />} />
         
         <Route path="/" element={<Navigate to="/login" replace />} />
       </Routes>

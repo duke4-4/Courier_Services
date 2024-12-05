@@ -41,23 +41,14 @@
   color: #888;
 }
 
-/* Add these global styles */
-html, body, #root {
-  height: 100%;
-  margin: 0;
-  padding: 0;
-}
-
-.dashboard-container {
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  background-color: #f9fafb;
-}
-
-.dashboard-content {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  padding: 1.5rem;
+@media print {
+  .print\:hidden {
+    display: none;
+  }
+  .print\:shadow-none {
+    box-shadow: none;
+  }
+  @page {
+    margin: 1cm;
+  }
 }
