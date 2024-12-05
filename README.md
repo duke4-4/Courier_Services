@@ -12,3 +12,4 @@ Currently, two official plugins are available:
 - add print function on receiver side
 - add mark as received
 - add mark as paid
+- add notifications
