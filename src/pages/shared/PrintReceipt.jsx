@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { PDFViewer, Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer';
+import { PDFViewer, Document, Page, Text, View, StyleSheet, Image } from '@react-pdf/renderer';
 import { XMarkIcon } from '@heroicons/react/24/outline';
 
 // Create styles for PDF
@@ -10,49 +10,81 @@ const styles = StyleSheet.create({
     fontFamily: 'Helvetica',
   },
   header: {
-    marginBottom: 20,
-    textAlign: 'center',
+    marginBottom: 30,
+    borderBottom: '2px solid #EA580C', // orange-600
+    paddingBottom: 10,
+  },
+  headerContent: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  logo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  logoText: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#EA580C', // orange-600
+  },
+  logoSubText: {
+    fontSize: 16,
+    color: '#4B5563', // gray-600
+    marginLeft: 4,
   },
   title: {
     fontSize: 20,
     marginBottom: 10,
+    color: '#1F2937', // gray-800
   },
   subtitle: {
     fontSize: 12,
-    color: '#666',
+    color: '#6B7280', // gray-500
   },
   section: {
     margin: 10,
     padding: 10,
     flexGrow: 1,
+    backgroundColor: '#F9FAFB', // gray-50
+    borderRadius: 4,
   },
   sectionTitle: {
     fontSize: 14,
     fontWeight: 'bold',
     marginBottom: 10,
+    color: '#1F2937', // gray-800
+    backgroundColor: '#F3F4F6', // gray-100
+    padding: 5,
+    borderRadius: 4,
   },
   row: {
     flexDirection: 'row',
     borderBottomWidth: 1,
-    borderBottomColor: '#EEEEEE',
+    borderBottomColor: '#E5E7EB', // gray-200
     borderBottomStyle: 'solid',
     paddingVertical: 5,
   },
   label: {
     flex: 1,
     fontSize: 10,
-    color: '#666',
+    color: '#6B7280', // gray-500
   },
   value: {
     flex: 2,
     fontSize: 10,
+    color: '#1F2937', // gray-800
   },
   total: {
     marginTop: 20,
     paddingTop: 10,
     borderTopWidth: 1,
-    borderTopColor: '#EEEEEE',
+    borderTopColor: '#EA580C', // orange-600
     borderTopStyle: 'solid',
+  },
+  totalValue: {
+    color: '#EA580C', // orange-600
+    fontWeight: 'bold',
   },
   footer: {
     position: 'absolute',
@@ -61,16 +93,42 @@ const styles = StyleSheet.create({
     right: 30,
     textAlign: 'center',
     fontSize: 8,
-    color: '#666',
+    color: '#6B7280', // gray-500
+    borderTop: '1px solid #E5E7EB', // gray-200
+    paddingTop: 10,
   },
+  status: {
+    padding: '4 8',
+    borderRadius: 12,
+    fontSize: 10,
+    textAlign: 'center',
+    backgroundColor: '#FEF3C7', // yellow-100
+    color: '#92400E', // yellow-800
+  },
+  statusDelivered: {
+    backgroundColor: '#D1FAE5', // green-100
+    color: '#065F46', // green-800
+  },
+  statusReceived: {
+    backgroundColor: '#DBEAFE', // blue-100
+    color: '#1E40AF', // blue-800
+  }
 });
 
 const ParcelPDF = ({ parcel }) => (
   <Document>
     <Page size="A4" style={styles.page}>
       <View style={styles.header}>
-        <Text style={styles.title}>HOT Courier Services</Text>
-        <Text style={styles.subtitle}>Parcel Receipt</Text>
+        <View style={styles.headerContent}>
+          <View style={styles.logo}>
+            <Text style={styles.logoText}>HOT</Text>
+            <Text style={styles.logoSubText}>Courier</Text>
+          </View>
+          <View>
+            <Text style={styles.subtitle}>Date: {new Date().toLocaleDateString()}</Text>
+            <Text style={styles.subtitle}>Receipt #{parcel.id}</Text>
+          </View>
+        </View>
       </View>
 
       <View style={styles.section}>
@@ -85,7 +143,13 @@ const ParcelPDF = ({ parcel }) => (
         </View>
         <View style={styles.row}>
           <Text style={styles.label}>Status:</Text>
-          <Text style={styles.value}>{parcel.status}</Text>
+          <View style={[
+            styles.status,
+            parcel.status === 'delivered' && styles.statusDelivered,
+            parcel.status === 'received' && styles.statusReceived
+          ]}>
+            <Text>{parcel.status.toUpperCase()}</Text>
+          </View>
         </View>
       </View>
 
@@ -142,8 +206,9 @@ const ParcelPDF = ({ parcel }) => (
       </View>
 
       <View style={styles.footer}>
-        <Text>Thank you for choosing HOT Courier Services</Text>
-        <Text>For any queries, please contact support@hot.co.zw</Text>
+        <Text>HOT Courier Services</Text>
+        <Text>123 Delivery Street, Harare, Zimbabwe</Text>
+        <Text>Tel: +263 123 456 789 | Email: support@hot.co.zw</Text>
       </View>
     </Page>
   </Document>
