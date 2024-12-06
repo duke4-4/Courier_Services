@@ -23,10 +23,20 @@ const Login = ({ setUser }) => {
     );
 
     if (user) {
-      const { password, ...userWithoutPassword } = user;
-      localStorage.setItem('user', JSON.stringify(userWithoutPassword));
-      setUser(userWithoutPassword);
-      navigate(`/${user.role}`);
+      switch (user.role) {
+        case 'admin':
+          navigate('/admin');
+          break;
+        case 'operator':
+          navigate('/operator');
+          break;
+        case 'receiver':
+          navigate('/receiver');
+          break;
+        default:
+          setError('Invalid user role');
+      }
+      setUser(user);
     } else {
       setError('Invalid credentials');
     }

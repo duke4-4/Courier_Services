@@ -5,7 +5,16 @@ export const initializeData = () => {
     localStorage.clear();
   }
 
-  // Always initialize users, even if they exist, to ensure consistent data
+  // Initialize branches
+  const branches = [
+    { id: 'BR001', name: 'Harare Central', location: 'Harare CBD' },
+    { id: 'BR002', name: 'Bulawayo Main', location: 'Bulawayo CBD' },
+    { id: 'BR003', name: 'Gweru Branch', location: 'Gweru' },
+    { id: 'BR004', name: 'Mutare Branch', location: 'Mutare' }
+  ];
+  localStorage.setItem('branches', JSON.stringify(branches));
+
+  // Initialize users with operators
   const users = [
     {
       id: 'admin-1',
@@ -15,11 +24,20 @@ export const initializeData = () => {
       name: 'Admin User'
     },
     {
-      id: 'sender-1',
-      email: 'sender@hot.co.zw',
-      password: 'sender123',
-      role: 'sender',
-      name: 'Sender User'
+      id: 'op-1',
+      email: 'harare.central@hot.co.zw',
+      password: 'operator123',
+      name: 'Harare Central Operator',
+      role: 'operator',
+      branchId: 'BR001'
+    },
+    {
+      id: 'op-2',
+      email: 'bulawayo.main@hot.co.zw',
+      password: 'operator123',
+      name: 'Bulawayo Main Operator',
+      role: 'operator',
+      branchId: 'BR002'
     },
     {
       id: 'receiver-1',

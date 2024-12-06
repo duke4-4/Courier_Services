@@ -348,10 +348,51 @@ const Parcels = () => {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Sender Information */}
+              {/* Branch Information */}
               <div className="bg-gray-50 p-4 rounded-lg">
-                <h4 className="text-base font-medium text-gray-900 mb-4">Sender Information</h4>
-                <dl className="space-y-2">
+                <h4 className="text-base font-medium text-gray-900 mb-4">Branch Information</h4>
+                <dl className="space-y-3">
+                  <div>
+                    <dt className="text-sm font-medium text-gray-500">Dispatch Branch</dt>
+                    <dd className="mt-1 text-sm text-gray-900">{selectedParcel.dispatchBranch}</dd>
+                    <dd className="text-xs text-gray-500">{selectedParcel.dispatchAddress}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-sm font-medium text-gray-500">Destination Branch</dt>
+                    <dd className="mt-1 text-sm text-gray-900">{selectedParcel.destinationBranch}</dd>
+                  </div>
+                </dl>
+              </div>
+
+              {/* Status History */}
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <h4 className="text-base font-medium text-gray-900 mb-4">Status History</h4>
+                <div className="space-y-4">
+                  {selectedParcel.statusUpdates?.map((update, index) => (
+                    <div key={index} className="border-l-4 border-orange-500 pl-4 py-2">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <p className="text-sm font-medium text-gray-900">{update.status}</p>
+                          <p className="text-xs text-gray-500">
+                            By: {update.updatedBy} ({update.branchName})
+                          </p>
+                        </div>
+                        <p className="text-xs text-gray-500">
+                          {new Date(update.updatedAt).toLocaleString()}
+                        </p>
+                      </div>
+                      {update.notes && (
+                        <p className="mt-1 text-sm text-gray-600">{update.notes}</p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Sender Details */}
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <h4 className="text-base font-medium text-gray-900 mb-4">Sender Details</h4>
+                <dl className="space-y-3">
                   <div>
                     <dt className="text-sm font-medium text-gray-500">Name</dt>
                     <dd className="mt-1 text-sm text-gray-900">{selectedParcel.senderName}</dd>
@@ -360,113 +401,55 @@ const Parcels = () => {
                     <dt className="text-sm font-medium text-gray-500">Email</dt>
                     <dd className="mt-1 text-sm text-gray-900">{selectedParcel.senderEmail}</dd>
                   </div>
-                </dl>
-              </div>
-
-              {/* Receiver Information */}
-              <div className="bg-gray-50 p-4 rounded-lg">
-                <h4 className="text-base font-medium text-gray-900 mb-4">Receiver Information</h4>
-                <dl className="space-y-2">
                   <div>
-                    <dt className="text-sm font-medium text-gray-500">Name</dt>
-                    <dd className="mt-1 text-sm text-gray-900">{selectedParcel.receiverName}</dd>
-                  </div>
-                  <div>
-                    <dt className="text-sm font-medium text-gray-500">Email</dt>
-                    <dd className="mt-1 text-sm text-gray-900">{selectedParcel.receiverEmail}</dd>
-                  </div>
-                  <div>
-                    <dt className="text-sm font-medium text-gray-500">Phone</dt>
-                    <dd className="mt-1 text-sm text-gray-900">{selectedParcel.receiverPhone}</dd>
-                  </div>
-                  <div>
-                    <dt className="text-sm font-medium text-gray-500">Destination</dt>
-                    <dd className="mt-1 text-sm text-gray-900">{selectedParcel.destination}</dd>
-                  </div>
-                </dl>
-              </div>
-
-              {/* Parcel Details */}
-              <div className="bg-gray-50 p-4 rounded-lg">
-                <h4 className="text-base font-medium text-gray-900 mb-4">Parcel Details</h4>
-                <dl className="space-y-2">
-                  <div>
-                    <dt className="text-sm font-medium text-gray-500">Weight</dt>
-                    <dd className="mt-1 text-sm text-gray-900">{selectedParcel.weight} kg</dd>
-                  </div>
-                  <div>
-                    <dt className="text-sm font-medium text-gray-500">Vehicle Type</dt>
-                    <dd className="mt-1 text-sm text-gray-900">{selectedParcel.vehicleType}</dd>
-                  </div>
-                  <div>
-                    <dt className="text-sm font-medium text-gray-500">Created Date</dt>
-                    <dd className="mt-1 text-sm text-gray-900">
-                      {new Date(selectedParcel.createdAt).toLocaleString()}
-                    </dd>
+                    <dt className="text-sm font-medium text-gray-500">Operator ID</dt>
+                    <dd className="mt-1 text-sm text-gray-900">{selectedParcel.senderBranchId}</dd>
                   </div>
                 </dl>
               </div>
 
               {/* Payment Information */}
               <div className="bg-gray-50 p-4 rounded-lg">
-                <h4 className="text-base font-medium text-gray-900 mb-4">Payment Information</h4>
-                <dl className="space-y-2">
+                <h4 className="text-base font-medium text-gray-900 mb-4">Payment Details</h4>
+                <dl className="space-y-3">
                   <div>
-                    <dt className="text-sm font-medium text-gray-500">Payment Method</dt>
-                    <dd className="mt-1 text-sm text-gray-900">
-                      {selectedParcel.paymentMethod === 'prepaid' ? 'Paid Online' : 'Cash Payment'}
-                    </dd>
+                    <dt className="text-sm font-medium text-gray-500">Base Amount</dt>
+                    <dd className="mt-1 text-sm text-gray-900">${selectedParcel.amount.toFixed(2)}</dd>
                   </div>
+                  {selectedParcel.floatAmount > 0 && (
+                    <div>
+                      <dt className="text-sm font-medium text-gray-500">Float Amount</dt>
+                      <dd className="mt-1 text-sm text-gray-900">${selectedParcel.floatAmount.toFixed(2)}</dd>
+                    </div>
+                  )}
                   <div>
-                    <dt className="text-sm font-medium text-gray-500">Amount</dt>
+                    <dt className="text-sm font-medium text-gray-500">Total Amount</dt>
                     <dd className="mt-1 text-sm font-medium text-orange-600">
-                      ${selectedParcel.amount.toFixed(2)}
+                      ${selectedParcel.totalAmount.toFixed(2)}
                     </dd>
                   </div>
                   <div>
                     <dt className="text-sm font-medium text-gray-500">Payment Status</dt>
                     <dd className="mt-1">
-                      <span className={`inline-flex rounded-full px-2 text-xs font-semibold leading-5 ${
-                        selectedParcel.isPaid 
-                          ? 'bg-green-100 text-green-800' 
+                      <span className={`inline-flex rounded-full px-2 text-xs font-semibold ${
+                        selectedParcel.isPaid
+                          ? 'bg-green-100 text-green-800'
                           : 'bg-yellow-100 text-yellow-800'
                       }`}>
-                        {selectedParcel.isPaid ? 'Paid' : 'Pending Payment'}
+                        {selectedParcel.isPaid ? 'Paid' : 'Pending'}
                       </span>
                     </dd>
                   </div>
                   {selectedParcel.isPaid && (
                     <div>
-                      <dt className="text-sm font-medium text-gray-500">Paid At</dt>
-                      <dd className="mt-1 text-sm text-gray-900">
+                      <dt className="text-sm font-medium text-gray-500">Paid By</dt>
+                      <dd className="mt-1 text-sm text-gray-900">{selectedParcel.paidBy}</dd>
+                      <dd className="text-xs text-gray-500">
                         {new Date(selectedParcel.paidAt).toLocaleString()}
                       </dd>
                     </div>
                   )}
                 </dl>
-              </div>
-            </div>
-
-            {/* Status Update Section */}
-            <div className="mt-6 bg-gray-50 p-4 rounded-lg">
-              <h4 className="text-base font-medium text-gray-900 mb-4">Update Status</h4>
-              <div className="flex flex-col space-y-2">
-                {selectedParcel.status === 'pending' && (
-                  <button
-                    onClick={() => updateParcelStatus(selectedParcel.id, 'in_transit')}
-                    className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-orange-600 hover:bg-orange-700"
-                  >
-                    Mark as In Transit
-                  </button>
-                )}
-                {selectedParcel.status === 'in_transit' && (
-                  <button
-                    onClick={() => updateParcelStatus(selectedParcel.id, 'delivered')}
-                    className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700"
-                  >
-                    Mark as Delivered
-                  </button>
-                )}
               </div>
             </div>
 

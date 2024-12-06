@@ -19,9 +19,10 @@ const vehicleTypes = [
 ];
 
 const calculateCharge = (weight, vehicleType) => {
-  const baseRate = 10; // Base rate per kg
+  const baseRate = 5; // Base rate starts at $5
+  const perKgRate = 0.3; // $0.3 per kg
   const vehicle = vehicleTypes.find(v => v.id === vehicleType);
-  return weight * baseRate * vehicle.multiplier;
+  return baseRate + (weight * perKgRate * vehicle.multiplier);
 };
 
 const NewParcel = ({ user }) => {
@@ -40,6 +41,31 @@ const NewParcel = ({ user }) => {
   const [calculatedCharge, setCalculatedCharge] = useState(0);
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [newParcelId, setNewParcelId] = useState(null);
+  const [branches, setBranches] = useState([]);
+  const [destinationBranch, setDestinationBranch] = useState(null);
+  const [floatAmount, setFloatAmount] = useState(0); // Add float amount state
+
+  useEffect(() => {
+    const storedBranches = JSON.parse(localStorage.getItem('branches') || '[]');
+    setBranches(storedBranches);
+    // Set current operator's branch
+    const currentBranch = storedBranches.find(b => b.id === user.branchId);
+    setFormData(prev => ({
+      ...prev,
+      dispatchBranch: currentBranch?.name || '',
+      dispatchAddress: currentBranch?.location || ''
+    }));
+  }, [user.branchId]);
+
+  // Update destination branch when destination city changes
+  useEffect(() => {
+    if (formData.destination) {
+      const branch = branches.find(b => 
+        b.location.toLowerCase().includes(formData.destination.toLowerCase())
+      );
+      setDestinationBranch(branch);
+    }
+  }, [formData.destination, branches]);
 
   useEffect(() => {
     if (formData.weight && formData.vehicleType) {
@@ -53,19 +79,36 @@ const NewParcel = ({ user }) => {
     
     const parcelId = `PCL${Date.now().toString().slice(-6)}`;
     const isPrepaid = formData.paymentMethod === 'prepaid';
+    const totalAmount = calculatedCharge + Number(floatAmount);
     
     const newParcel = {
       id: parcelId,
       ...formData,
       senderName: user.name,
       senderEmail: user.email,
+      senderBranchId: user.branchId,
+      dispatchBranch: formData.dispatchBranch,
+      dispatchAddress: formData.dispatchAddress,
+      destinationBranchId: destinationBranch?.id,
+      destinationBranch: destinationBranch?.name,
       status: 'pending',
       amount: calculatedCharge,
+      floatAmount: Number(floatAmount),
+      totalAmount: totalAmount,
       createdAt: new Date().toISOString(),
       weight: parseFloat(formData.weight),
       isPaid: isPrepaid,
       paidAt: isPrepaid ? new Date().toISOString() : null,
-      paidBy: isPrepaid ? user.email : null
+      paidBy: isPrepaid ? user.email : null,
+      statusUpdates: [
+        {
+          status: 'pending',
+          updatedAt: new Date().toISOString(),
+          updatedBy: user.email,
+          branchId: user.branchId,
+          branchName: formData.dispatchBranch
+        }
+      ]
     };
 
     // Save to localStorage
@@ -284,20 +327,91 @@ const NewParcel = ({ user }) => {
             </div>
           </div>
 
-          {/* Charge Display */}
+          {/* Add Float Amount Section */}
+          <div className="bg-white p-6 rounded-lg border border-gray-200">
+            <h3 className="text-lg font-medium text-gray-900 mb-4">Additional Charges</h3>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700">
+                  Float Amount (Optional)
+                </label>
+                <div className="mt-1 relative rounded-md shadow-sm">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <span className="text-gray-500 sm:text-sm">$</span>
+                  </div>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={floatAmount}
+                    onChange={(e) => setFloatAmount(e.target.value)}
+                    className="pl-7 block w-full shadow-sm focus:ring-orange-500 focus:border-orange-500 sm:text-sm border-gray-300 rounded-md"
+                    placeholder="0.00"
+                  />
+                </div>
+                <p className="mt-1 text-sm text-gray-500">
+                  Additional amount that can be paid later
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Update Charge Display */}
           {calculatedCharge > 0 && (
             <div className="bg-orange-50 p-6 rounded-lg border border-orange-200">
               <div className="flex items-center justify-between">
                 <div>
-                  <h3 className="text-lg font-medium text-gray-900">Delivery Charge</h3>
-                  <p className="text-sm text-gray-600">Based on weight and vehicle type</p>
+                  <h3 className="text-lg font-medium text-gray-900">Delivery Charges</h3>
+                  <div className="mt-1 space-y-1">
+                    <p className="text-sm text-gray-600">Base charge: $5.00</p>
+                    <p className="text-sm text-gray-600">
+                      Weight charge: ${((calculatedCharge - 5) || 0).toFixed(2)}
+                    </p>
+                    {floatAmount > 0 && (
+                      <p className="text-sm text-gray-600">
+                        Float amount: ${Number(floatAmount).toFixed(2)}
+                      </p>
+                    )}
+                  </div>
                 </div>
                 <div className="text-right">
-                  <p className="text-3xl font-bold text-orange-600">${calculatedCharge.toFixed(2)}</p>
+                  <p className="text-3xl font-bold text-orange-600">
+                    ${(calculatedCharge + Number(floatAmount)).toFixed(2)}
+                  </p>
+                  {floatAmount > 0 && (
+                    <p className="text-sm text-gray-500">
+                      (Includes ${Number(floatAmount).toFixed(2)} float)
+                    </p>
+                  )}
                 </div>
               </div>
             </div>
           )}
+
+          {/* Add Dispatch Information Display */}
+          <div className="bg-white p-6 rounded-lg border border-gray-200">
+            <h3 className="text-lg font-medium text-gray-900 mb-4">Dispatch Information</h3>
+            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Dispatch Branch</label>
+                <input
+                  type="text"
+                  readOnly
+                  value={formData.dispatchBranch}
+                  className="mt-1 block w-full bg-gray-50 shadow-sm sm:text-sm border-gray-300 rounded-md"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Dispatch Address</label>
+                <input
+                  type="text"
+                  readOnly
+                  value={formData.dispatchAddress}
+                  className="mt-1 block w-full bg-gray-50 shadow-sm sm:text-sm border-gray-300 rounded-md"
+                />
+              </div>
+            </div>
+          </div>
 
           <div className="flex justify-end">
             <button

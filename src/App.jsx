@@ -1,66 +1,41 @@
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { useState, useEffect } from 'react';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { useState } from 'react';
 import Login from './pages/Login';
 import AdminDashboard from './pages/admin/AdminDashboard';
-import SenderDashboard from './pages/sender/SenderDashboard';
 import ReceiverDashboard from './pages/receiver/ReceiverDashboard';
-import ProtectedRoute from './components/ProtectedRoute';
-import { initializeData } from './utils/initializeData';
-import './App.css';
+import OperatorDashboard from './pages/operator/OperatorDashboard';
 import TrackParcel from './pages/TrackParcel';
 
-function App() {
+const App = () => {
   const [user, setUser] = useState(null);
 
-  useEffect(() => {
-    // Initialize sample data
-    initializeData();
-    
-    // Check for logged in user
-    const loggedInUser = localStorage.getItem('user');
-    if (loggedInUser) {
-      setUser(JSON.parse(loggedInUser));
+  // ... existing code ...
+
+  const getDashboardComponent = () => {
+    switch (user?.role) {
+      case 'admin':
+        return <AdminDashboard user={user} setUser={setUser} />;
+      case 'operator':
+        return <OperatorDashboard user={user} setUser={setUser} />;
+      case 'receiver':
+        return <ReceiverDashboard user={user} setUser={setUser} />;
+      default:
+        return <Navigate to="/login" />;
     }
-  }, []);
+  };
 
   return (
-    <Router>
+    <BrowserRouter>
       <Routes>
         <Route path="/login" element={<Login setUser={setUser} />} />
-        
-        <Route
-          path="/admin/*"
-          element={
-            <ProtectedRoute user={user} role="admin">
-              <AdminDashboard user={user} setUser={setUser} />
-            </ProtectedRoute>
-          }
-        />
-        
-        <Route
-          path="/sender/*"
-          element={
-            <ProtectedRoute user={user} role="sender">
-              <SenderDashboard user={user} setUser={setUser} />
-            </ProtectedRoute>
-          }
-        />
-        
-        <Route
-          path="/receiver/*"
-          element={
-            <ProtectedRoute user={user} role="receiver">
-              <ReceiverDashboard user={user} setUser={setUser} />
-            </ProtectedRoute>
-          }
-        />
-        
         <Route path="/track" element={<TrackParcel />} />
-        
-        <Route path="/" element={<Navigate to="/login" replace />} />
+        <Route path="/admin/*" element={user?.role === 'admin' ? <AdminDashboard user={user} setUser={setUser} /> : <Navigate to="/login" />} />
+        <Route path="/operator/*" element={user?.role === 'operator' ? <OperatorDashboard user={user} setUser={setUser} /> : <Navigate to="/login" />} />
+        <Route path="/receiver/*" element={user?.role === 'receiver' ? <ReceiverDashboard user={user} setUser={setUser} /> : <Navigate to="/login" />} />
+        <Route path="/" element={user ? getDashboardComponent() : <Navigate to="/login" />} />
       </Routes>
-    </Router>
+    </BrowserRouter>
   );
-}
+};
 
 export default App;

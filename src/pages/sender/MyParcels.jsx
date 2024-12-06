@@ -3,11 +3,14 @@ import {
   MagnifyingGlassIcon as SearchIcon,
   EyeIcon 
 } from '@heroicons/react/24/outline';
+import UpdateParcelStatus from './UpdateParcelStatus';
 
 const MyParcels = ({ user }) => {
   const [parcels, setParcels] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
+  const [showUpdateModal, setShowUpdateModal] = useState(false);
+  const [selectedParcel, setSelectedParcel] = useState(null);
 
   useEffect(() => {
     // In a real app, this would be an API call
@@ -24,6 +27,15 @@ const MyParcels = ({ user }) => {
     
     return matchesSearch && matchesStatus;
   });
+
+  const handleStatusUpdate = (updatedParcel) => {
+    const parcels = JSON.parse(localStorage.getItem('parcels') || '[]');
+    const updatedParcels = parcels.map(p => 
+      p.id === updatedParcel.id ? updatedParcel : p
+    );
+    localStorage.setItem('parcels', JSON.stringify(updatedParcels));
+    loadParcels(); // Refresh the list
+  };
 
   return (
     <div>
@@ -81,6 +93,12 @@ const MyParcels = ({ user }) => {
                     <th className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
                       Amount
                     </th>
+                    <th className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
+                      Dispatch Branch
+                    </th>
+                    <th className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
+                      Destination Branch
+                    </th>
                     <th className="relative py-3.5 pl-3 pr-4 sm:pr-6">
                       <span className="sr-only">Actions</span>
                     </th>
@@ -112,11 +130,21 @@ const MyParcels = ({ user }) => {
                       <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
                         ${parcel.amount}
                       </td>
+                      <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                        {parcel.dispatchBranch}
+                      </td>
+                      <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                        {parcel.destinationBranch}
+                      </td>
                       <td className="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
                         <button
+                          onClick={() => {
+                            setSelectedParcel(parcel);
+                            setShowUpdateModal(true);
+                          }}
                           className="text-orange-600 hover:text-orange-900"
                         >
-                          <EyeIcon className="h-5 w-5" />
+                          Update Status
                         </button>
                       </td>
                     </tr>
@@ -127,6 +155,15 @@ const MyParcels = ({ user }) => {
           </div>
         </div>
       </div>
+
+      {showUpdateModal && selectedParcel && (
+        <UpdateParcelStatus
+          parcel={selectedParcel}
+          onClose={() => setShowUpdateModal(false)}
+          onUpdate={handleStatusUpdate}
+          user={user}
+        />
+      )}
     </div>
   );
 };

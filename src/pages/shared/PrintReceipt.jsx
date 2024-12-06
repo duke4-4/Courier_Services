@@ -194,9 +194,28 @@ const ParcelPDF = ({ parcel }) => (
           <Text style={styles.label}>Payment Method:</Text>
           <Text style={styles.value}>{parcel.paymentMethod}</Text>
         </View>
-        <View style={[styles.row, styles.total]}>
-          <Text style={styles.label}>Total Amount:</Text>
-          <Text style={styles.value}>${parcel.amount.toFixed(2)}</Text>
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Payment Details</Text>
+          <View style={styles.row}>
+            <Text style={styles.label}>Base Charge:</Text>
+            <Text style={styles.value}>$5.00</Text>
+          </View>
+          <View style={styles.row}>
+            <Text style={styles.label}>Weight Charge:</Text>
+            <Text style={styles.value}>${((parcel.amount - 5) || 0).toFixed(2)}</Text>
+          </View>
+          {parcel.floatAmount > 0 && (
+            <View style={styles.row}>
+              <Text style={styles.label}>Float Amount:</Text>
+              <Text style={styles.value}>${parcel.floatAmount.toFixed(2)}</Text>
+            </View>
+          )}
+          <View style={[styles.row, styles.total]}>
+            <Text style={styles.label}>Total Amount:</Text>
+            <Text style={[styles.value, styles.totalValue]}>
+              ${parcel.totalAmount.toFixed(2)}
+            </Text>
+          </View>
         </View>
       </View>
 
