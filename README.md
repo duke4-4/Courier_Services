@@ -17,3 +17,4 @@ Currently, two official plugins are available:
 - add sender dashboard
 - add receiver dashboard
 - add auth
+- add reports
