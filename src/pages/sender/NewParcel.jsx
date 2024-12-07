@@ -9,7 +9,7 @@ import {
   XMarkIcon,
   PrinterIcon
 } from '@heroicons/react/24/outline';
-import { broadcastUpdate, EVENTS } from '../../utils/realTimeUpdates';
+import { broadcastUpdate, EVENTS, syncData } from '../../utils/realTimeUpdates';
 
 const vehicleTypes = [
   { id: 'motorcycle', name: 'Motorcycle', multiplier: 1, description: 'For small packages up to 20kg' },
@@ -117,8 +117,9 @@ const NewParcel = ({ user }) => {
     parcels.push(newParcel);
     localStorage.setItem('parcels', JSON.stringify(parcels));
 
-    // Broadcast the new parcel
+    // Broadcast update and sync
     broadcastUpdate(EVENTS.PARCEL_CREATED, newParcel);
+    syncData();
 
     // If prepaid, update revenue
     if (isPrepaid) {

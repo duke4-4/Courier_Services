@@ -7,7 +7,7 @@ import {
   CurrencyDollarIcon
 } from '@heroicons/react/24/outline';
 import UpdateParcelStatus from './UpdateParcelStatus';
-import { subscribeToUpdates, EVENTS } from '../../utils/realTimeUpdates';
+import { subscribeToUpdates, EVENTS, syncData, loadParcelsWithSync } from '../../utils/realTimeUpdates';
 
 const MyParcels = ({ user }) => {
   const [parcels, setParcels] = useState([]);
@@ -17,13 +17,15 @@ const MyParcels = ({ user }) => {
   const [selectedParcel, setSelectedParcel] = useState(null);
 
   const loadParcels = () => {
-    const allParcels = JSON.parse(localStorage.getItem('parcels') || '[]');
-    // Filter parcels by operator's branch
+    const allParcels = loadParcelsWithSync();
     const branchParcels = allParcels.filter(parcel => 
       parcel.senderBranchId === user.branchId ||
       parcel.destinationBranchId === user.branchId
     );
     setParcels(branchParcels);
+    
+    // Sync data after loading
+    syncData();
   };
 
   useEffect(() => {
@@ -32,7 +34,6 @@ const MyParcels = ({ user }) => {
     const unsubscribe = subscribeToUpdates((update) => {
       if ([EVENTS.PARCEL_UPDATED, EVENTS.PARCEL_CREATED, EVENTS.STATUS_UPDATED, 
            EVENTS.PAYMENT_RECEIVED].includes(update.type)) {
-        // Check if update is relevant to this branch
         const updatedParcel = update.data;
         if (updatedParcel.senderBranchId === user.branchId || 
             updatedParcel.destinationBranchId === user.branchId) {
@@ -41,10 +42,10 @@ const MyParcels = ({ user }) => {
       }
     });
 
-    // Poll for updates every 30 seconds
+    // Poll for updates every 15 seconds
     const refreshInterval = setInterval(() => {
       loadParcels();
-    }, 30000);
+    }, 15000);
 
     return () => {
       unsubscribe();

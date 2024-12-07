@@ -5,53 +5,70 @@ export const EVENTS = {
   PAYMENT_RECEIVED: 'PAYMENT_RECEIVED'
 };
 
+// Keep track of last sync time globally
+let lastSyncTime = new Date().getTime();
+
 export const broadcastUpdate = (eventType, data) => {
-  // Create the update object
-  const update = {
+  const timestamp = new Date().getTime();
+  
+  // Store the update details
+  const updates = JSON.parse(localStorage.getItem('parcelUpdates') || '[]');
+  updates.push({
     type: eventType,
     data,
-    timestamp: new Date().toISOString()
-  };
+    timestamp
+  });
 
-  // Store the update in localStorage
-  localStorage.setItem('lastUpdate', JSON.stringify(update));
+  // Keep only last 100 updates
+  if (updates.length > 100) {
+    updates.splice(0, updates.length - 100);
+  }
+
+  // Update localStorage
+  localStorage.setItem('parcelUpdates', JSON.stringify(updates));
+  localStorage.setItem('lastUpdateTime', timestamp.toString());
 
   // Dispatch event for same-window updates
-  const event = new CustomEvent('hot-courier-update', { detail: update });
+  const event = new CustomEvent('hot-courier-update', { 
+    detail: { type: eventType, data, timestamp }
+  });
   window.dispatchEvent(event);
-
-  // Store last update timestamp
-  localStorage.setItem('lastUpdateTime', new Date().toISOString());
 };
 
 export const subscribeToUpdates = (callback) => {
-  let lastCheck = new Date().toISOString();
-
   // Handle same-window updates
   const handleUpdate = (event) => {
     callback(event.detail);
   };
 
-  // Handle cross-window/tab updates
-  const handleStorageChange = (e) => {
-    if (e.key === 'lastUpdate' && e.newValue) {
-      const update = JSON.parse(e.newValue);
-      callback(update);
+  // Check for updates every 2 seconds
+  const checkForUpdates = () => {
+    const updates = JSON.parse(localStorage.getItem('parcelUpdates') || '[]');
+    const newUpdates = updates.filter(update => update.timestamp > lastSyncTime);
+
+    if (newUpdates.length > 0) {
+      newUpdates.forEach(update => {
+        callback(update);
+      });
+      lastSyncTime = Math.max(...newUpdates.map(u => u.timestamp));
     }
   };
 
-  // Poll for updates every 5 seconds
-  const pollInterval = setInterval(() => {
-    const lastUpdateTime = localStorage.getItem('lastUpdateTime');
-    if (lastUpdateTime && lastUpdateTime > lastCheck) {
-      const update = JSON.parse(localStorage.getItem('lastUpdate'));
-      callback(update);
-      lastCheck = lastUpdateTime;
+  // Set up polling
+  const pollInterval = setInterval(checkForUpdates, 2000);
+
+  // Listen for storage events from other tabs/windows
+  const handleStorageChange = (e) => {
+    if (e.key === 'parcelUpdates' && e.newValue) {
+      checkForUpdates();
     }
-  }, 5000);
+  };
 
   window.addEventListener('hot-courier-update', handleUpdate);
   window.addEventListener('storage', handleStorageChange);
+
+  // Initial check
+  checkForUpdates();
 
   // Return cleanup function
   return () => {
@@ -59,4 +76,30 @@ export const subscribeToUpdates = (callback) => {
     window.removeEventListener('storage', handleStorageChange);
     clearInterval(pollInterval);
   };
+};
+
+// Helper function to sync data across devices
+export const syncData = () => {
+  const timestamp = new Date().getTime();
+  const parcels = JSON.parse(localStorage.getItem('parcels') || '[]');
+  
+  localStorage.setItem('lastSync', timestamp.toString());
+  localStorage.setItem('syncedParcels', JSON.stringify({
+    timestamp,
+    data: parcels
+  }));
+};
+
+// Add this to MyParcels.jsx loadParcels function
+export const loadParcelsWithSync = () => {
+  const allParcels = JSON.parse(localStorage.getItem('parcels') || '[]');
+  const syncedData = JSON.parse(localStorage.getItem('syncedParcels') || '{}');
+  
+  // If synced data is newer, use it
+  if (syncedData.timestamp > lastSyncTime) {
+    lastSyncTime = syncedData.timestamp;
+    return syncedData.data;
+  }
+  
+  return allParcels;
 }; 
