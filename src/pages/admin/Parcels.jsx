@@ -10,6 +10,7 @@ import {
 import { Document, Page, Text, View, StyleSheet, PDFViewer } from '@react-pdf/renderer';
 import classNames from 'classnames';
 import { useNavigate } from 'react-router-dom';
+import { subscribeToUpdates, EVENTS, broadcastUpdate } from '../../utils/realTimeUpdates';
 
 // Create styles for PDF
 const styles = StyleSheet.create({
@@ -38,6 +39,15 @@ const Parcels = () => {
 
   useEffect(() => {
     loadData();
+
+    const unsubscribe = subscribeToUpdates((update) => {
+      if ([EVENTS.PARCEL_UPDATED, EVENTS.PARCEL_CREATED, EVENTS.STATUS_UPDATED, 
+           EVENTS.PAYMENT_RECEIVED].includes(update.type)) {
+        loadData();
+      }
+    });
+
+    return () => unsubscribe();
   }, []);
 
   const loadData = () => {
@@ -50,55 +60,9 @@ const Parcels = () => {
   const updateParcelStatus = (parcelId, newStatus) => {
     const updatedParcels = parcels.map(parcel => {
       if (parcel.id === parcelId) {
-        // Handle revenue updates for delivered parcels
-        if (newStatus === 'delivered') {
-          if (parcel.paymentType === 'prepaid') {
-            updateRevenue(parcel.amount);
-            addNotification({
-              userId: parcel.sender,
-              title: 'Parcel Delivered',
-              message: `Your parcel ${parcel.id} has been delivered successfully.`
-            });
-          } else if (parcel.paymentType === 'pay_forward') {
-            // For pay forward, we'll update revenue when receiver confirms
-            addNotification({
-              userId: parcel.receiver,
-              title: 'Parcel Received - Payment Required',
-              message: `Your parcel ${parcel.id} has been delivered. Please complete the payment.`
-            });
-          }
-          addNotification({
-            userId: parcel.receiver,
-            title: 'Parcel Delivered',
-            message: `A parcel ${parcel.id} has been delivered to you. Please confirm receipt.`
-          });
-        } 
-        // Handle in-transit notifications
-        else if (newStatus === 'in_transit') {
-          addNotification({
-            userId: parcel.sender,
-            title: 'Parcel In Transit',
-            message: `Your parcel ${parcel.id} is now in transit.`
-          });
-          addNotification({
-            userId: parcel.receiver,
-            title: 'Parcel In Transit',
-            message: `A parcel ${parcel.id} is on its way to you.`
-          });
-        }
-        // Handle received status (confirmed by receiver)
-        else if (newStatus === 'received') {
-          if (parcel.paymentType === 'pay_forward') {
-            updateRevenue(parcel.amount);
-          }
-          addNotification({
-            userId: parcel.sender,
-            title: 'Parcel Received',
-            message: `Your parcel ${parcel.id} has been received and confirmed by the recipient.`
-          });
-        }
-        
-        return { ...parcel, status: newStatus };
+        const updatedParcel = { ...parcel, status: newStatus };
+        broadcastUpdate(EVENTS.STATUS_UPDATED, updatedParcel);
+        return updatedParcel;
       }
       return parcel;
     });

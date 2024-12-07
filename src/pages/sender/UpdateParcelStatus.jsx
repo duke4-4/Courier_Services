@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { XMarkIcon, PrinterIcon } from '@heroicons/react/24/outline';
 import { useNavigate } from 'react-router-dom';
+import { broadcastUpdate, EVENTS } from '../../utils/realTimeUpdates';
 
 const UpdateParcelStatus = ({ parcel, onClose, onUpdate, user }) => {
   const navigate = useNavigate();
@@ -33,14 +34,10 @@ const UpdateParcelStatus = ({ parcel, onClose, onUpdate, user }) => {
       statusUpdates: [...(parcel.statusUpdates || []), statusUpdate]
     };
 
+    // Broadcast the update
+    broadcastUpdate(EVENTS.STATUS_UPDATED, updatedParcel);
     onUpdate(updatedParcel);
-    
-    // Show print option if status is changed to received
-    if (newStatus === 'received') {
-      setShowPrintOption(true);
-    } else {
-      onClose();
-    }
+    onClose();
   };
 
   const handlePrint = () => {

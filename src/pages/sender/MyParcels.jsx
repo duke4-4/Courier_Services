@@ -7,6 +7,7 @@ import {
   CurrencyDollarIcon
 } from '@heroicons/react/24/outline';
 import UpdateParcelStatus from './UpdateParcelStatus';
+import { subscribeToUpdates, EVENTS } from '../../utils/realTimeUpdates';
 
 const MyParcels = ({ user }) => {
   const [parcels, setParcels] = useState([]);
@@ -27,6 +28,15 @@ const MyParcels = ({ user }) => {
 
   useEffect(() => {
     loadParcels();
+
+    // Subscribe to real-time updates
+    const unsubscribe = subscribeToUpdates((update) => {
+      if ([EVENTS.PARCEL_UPDATED, EVENTS.STATUS_UPDATED, EVENTS.PAYMENT_RECEIVED].includes(update.type)) {
+        loadParcels();
+      }
+    });
+
+    return () => unsubscribe();
   }, [user.branchId]);
 
   const filteredParcels = parcels.filter(parcel => {

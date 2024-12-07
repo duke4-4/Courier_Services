@@ -9,6 +9,7 @@ import {
   XMarkIcon,
   PrinterIcon
 } from '@heroicons/react/24/outline';
+import { broadcastUpdate, EVENTS } from '../../utils/realTimeUpdates';
 
 const vehicleTypes = [
   { id: 'motorcycle', name: 'Motorcycle', multiplier: 1, description: 'For small packages up to 20kg' },
@@ -115,6 +116,9 @@ const NewParcel = ({ user }) => {
     const parcels = JSON.parse(localStorage.getItem('parcels') || '[]');
     parcels.push(newParcel);
     localStorage.setItem('parcels', JSON.stringify(parcels));
+
+    // Broadcast the new parcel
+    broadcastUpdate(EVENTS.PARCEL_CREATED, newParcel);
 
     // If prepaid, update revenue
     if (isPrepaid) {
