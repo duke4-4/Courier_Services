@@ -43,7 +43,7 @@ const NewParcel = ({ user }) => {
   const [newParcelId, setNewParcelId] = useState(null);
   const [branches, setBranches] = useState([]);
   const [destinationBranch, setDestinationBranch] = useState(null);
-  const [floatAmount, setFloatAmount] = useState(0); // Add float amount state
+  const [floatAmount, setFloatAmount] = useState('0');
 
   useEffect(() => {
     const storedBranches = JSON.parse(localStorage.getItem('branches') || '[]');
@@ -79,7 +79,7 @@ const NewParcel = ({ user }) => {
     
     const parcelId = `PCL${Date.now().toString().slice(-6)}`;
     const isPrepaid = formData.paymentMethod === 'prepaid';
-    const totalAmount = calculatedCharge + Number(floatAmount);
+    const totalAmount = calculatedCharge + Number(floatAmount || 0);
     
     const newParcel = {
       id: parcelId,
@@ -153,7 +153,7 @@ const NewParcel = ({ user }) => {
   };
 
   const handlePrint = () => {
-    navigate(`/sender/print?parcelId=${newParcelId}`);
+    navigate(`/operator/print?parcelId=${newParcelId}`);
   };
 
   return (

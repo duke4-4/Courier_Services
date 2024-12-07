@@ -1,366 +1,361 @@
 import { useState, useEffect } from 'react';
-import { 
-  ArrowDownTrayIcon as DocumentDownloadIcon,
+import {
+  DocumentChartBarIcon,
+  CalendarIcon,
+  MapPinIcon,
+  PrinterIcon,
 } from '@heroicons/react/24/outline';
-import { Document, Page, Text, View, StyleSheet, PDFDownloadLink, Font } from '@react-pdf/renderer';
-import PropTypes from 'prop-types';
-
-// Register a font for PDF
-Font.register({
-  family: 'Roboto',
-  src: 'https://cdnjs.cloudflare.com/ajax/libs/ink/3.1.10/fonts/Roboto/roboto-light-webfont.ttf'
-});
-
-const styles = StyleSheet.create({
-  page: {
-    padding: 30,
-    fontFamily: 'Roboto',
-  },
-  header: {
-    marginBottom: 30,
-  },
-  title: {
-    fontSize: 24,
-    marginBottom: 10,
-    color: '#1f2937',
-  },
-  subtitle: {
-    fontSize: 14,
-    color: '#6b7280',
-    marginBottom: 20,
-  },
-  section: {
-    marginBottom: 20,
-  },
-  sectionTitle: {
-    fontSize: 16,
-    marginBottom: 10,
-    color: '#374151',
-  },
-  table: {
-    display: "table",
-    width: "100%",
-    marginBottom: 20,
-  },
-  tableRow: {
-    flexDirection: "row",
-    borderBottomWidth: 1,
-    borderBottomColor: "#e5e7eb",
-    borderBottomStyle: "solid",
-    paddingVertical: 8,
-  },
-  tableHeader: {
-    backgroundColor: '#f9fafb',
-  },
-  tableCell: {
-    flex: 1,
-    padding: 8,
-    fontSize: 10,
-  },
-  summaryBox: {
-    backgroundColor: '#f9fafb',
-    padding: 15,
-    marginBottom: 15,
-    borderRadius: 4,
-  },
-  summaryRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 5,
-  },
-  summaryLabel: {
-    fontSize: 12,
-    color: '#4b5563',
-  },
-  summaryValue: {
-    fontSize: 12,
-    fontWeight: 'bold',
-    color: '#1f2937',
-  },
-});
-
-const ReportDocument = ({ reports, companyBalance, totalRevenue }) => {
-  const pendingAmount = reports.reduce((acc, curr) => 
-    curr.status !== 'delivered' ? acc + curr.amount : acc, 0
-  );
-  
-  return (
-    <Document>
-      <Page size="A4" style={styles.page}>
-        <View style={styles.header}>
-          <Text style={styles.title}>Financial Report</Text>
-          <Text style={styles.subtitle}>Generated on {new Date().toLocaleDateString()}</Text>
-        </View>
-
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Financial Summary</Text>
-          <View style={styles.summaryBox}>
-            <View style={styles.summaryRow}>
-              <Text style={styles.summaryLabel}>Total Revenue:</Text>
-              <Text style={styles.summaryValue}>${totalRevenue}</Text>
-            </View>
-            <View style={styles.summaryRow}>
-              <Text style={styles.summaryLabel}>Company Balance:</Text>
-              <Text style={styles.summaryValue}>${companyBalance}</Text>
-            </View>
-            <View style={styles.summaryRow}>
-              <Text style={styles.summaryLabel}>Pending Payments:</Text>
-              <Text style={styles.summaryValue}>${pendingAmount}</Text>
-            </View>
-            <View style={styles.summaryRow}>
-              <Text style={styles.summaryLabel}>Net Balance:</Text>
-              <Text style={styles.summaryValue}>${companyBalance - pendingAmount}</Text>
-            </View>
-          </View>
-        </View>
-
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Delivery Details</Text>
-          <View style={styles.table}>
-            <View style={[styles.tableRow, styles.tableHeader]}>
-              <Text style={styles.tableCell}>ID</Text>
-              <Text style={styles.tableCell}>Sender</Text>
-              <Text style={styles.tableCell}>Status</Text>
-              <Text style={styles.tableCell}>Amount</Text>
-              <Text style={styles.tableCell}>Date</Text>
-            </View>
-            {reports.map((report) => (
-              <View key={report.id} style={styles.tableRow}>
-                <Text style={styles.tableCell}>{report.id}</Text>
-                <Text style={styles.tableCell}>{report.sender}</Text>
-                <Text style={styles.tableCell}>{report.status}</Text>
-                <Text style={styles.tableCell}>${report.amount}</Text>
-                <Text style={styles.tableCell}>
-                  {new Date(report.createdAt).toLocaleDateString()}
-                </Text>
-              </View>
-            ))}
-          </View>
-        </View>
-      </Page>
-    </Document>
-  );
-};
-
-ReportDocument.propTypes = {
-  reports: PropTypes.arrayOf(PropTypes.shape({
-    id: PropTypes.string,
-    sender: PropTypes.string,
-    status: PropTypes.string,
-    amount: PropTypes.number,
-    createdAt: PropTypes.string,
-  })).isRequired,
-  companyBalance: PropTypes.number.isRequired,
-  totalRevenue: PropTypes.number.isRequired,
-};
 
 const Reports = () => {
-  const [reports, setReports] = useState([]);
-  const [filterCity, setFilterCity] = useState('all');
-  const [filterDate, setFilterDate] = useState('all');
-  const [dateRange, setDateRange] = useState({
-    start: '',
-    end: '',
+  const [parcels, setParcels] = useState([]);
+  const [totalRevenue, setTotalRevenue] = useState(0);
+  const [dateRange, setDateRange] = useState('all');
+  const [selectedCity, setSelectedCity] = useState('all');
+  const [customStartDate, setCustomStartDate] = useState('');
+  const [customEndDate, setCustomEndDate] = useState('');
+  const [reportData, setReportData] = useState({
+    totalParcels: 0,
+    deliveredParcels: 0,
+    pendingParcels: 0,
+    cityWiseData: {},
+    revenueByCity: {},
+    paymentStatus: {
+      paid: 0,
+      pending: 0
+    }
   });
-  const [companyBalance, setCompanyBalance] = useState(0);
+
+  const cities = ['Harare', 'Bulawayo', 'Gweru', 'Mutare'];
 
   useEffect(() => {
-    const parcels = JSON.parse(localStorage.getItem('parcels') || '[]');
-    setReports(parcels);
-    // In a real app, this would come from an API
-    setCompanyBalance(150000); // Example company balance
-  }, []);
+    loadData();
+  }, [dateRange, customStartDate, customEndDate, selectedCity]);
 
-  const filteredReports = reports.filter(report => {
-    let matchesCity = filterCity === 'all' || report.dispatchCity?.toLowerCase() === filterCity;
-    let matchesDate = true;
+  const loadData = () => {
+    const allParcels = JSON.parse(localStorage.getItem('parcels') || '[]');
+    let filteredParcels = allParcels;
 
-    if (filterDate !== 'all') {
-      const reportDate = new Date(report.createdAt);
-      const today = new Date();
+    // Apply date filtering
+    if (dateRange !== 'all') {
+      const endDate = new Date();
+      let startDate = new Date();
 
-      switch(filterDate) {
-        case 'daily':
-          matchesDate = reportDate.toDateString() === today.toDateString();
+      switch (dateRange) {
+        case 'today':
+          startDate.setHours(0, 0, 0, 0);
           break;
-        case 'weekly': {
-          const lastWeek = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
-          matchesDate = reportDate >= lastWeek;
+        case 'week':
+          startDate.setDate(startDate.getDate() - 7);
           break;
-        }
-        case 'monthly':
-          matchesDate = reportDate.getMonth() === today.getMonth() && 
-                       reportDate.getFullYear() === today.getFullYear();
+        case 'month':
+          startDate.setMonth(startDate.getMonth() - 1);
           break;
-        case 'custom': {
-          const start = new Date(dateRange.start);
-          const end = new Date(dateRange.end);
-          matchesDate = reportDate >= start && reportDate <= end;
-          break;
-        }
-        default:
+        case 'custom':
+          if (customStartDate && customEndDate) {
+            startDate = new Date(customStartDate);
+            endDate = new Date(customEndDate);
+            endDate.setHours(23, 59, 59, 999);
+          }
           break;
       }
+
+      filteredParcels = allParcels.filter(parcel => {
+        const parcelDate = new Date(parcel.createdAt);
+        return parcelDate >= startDate && parcelDate <= endDate;
+      });
     }
 
-    return matchesCity && matchesDate;
-  });
+    // Apply city filtering
+    if (selectedCity !== 'all') {
+      filteredParcels = filteredParcels.filter(parcel => 
+        parcel.dispatchBranch?.toLowerCase().includes(selectedCity.toLowerCase()) ||
+        parcel.destinationBranch?.toLowerCase().includes(selectedCity.toLowerCase())
+      );
+    }
 
-  const totalRevenue = filteredReports.reduce((acc, curr) => acc + curr.amount, 0);
-  const pendingAmount = filteredReports.reduce((acc, curr) => 
-    curr.status !== 'delivered' ? acc + curr.amount : acc, 0
-  );
+    // Calculate statistics
+    const stats = {
+      totalParcels: filteredParcels.length,
+      deliveredParcels: filteredParcels.filter(p => p.status === 'delivered' || p.status === 'received').length,
+      pendingParcels: filteredParcels.filter(p => p.status === 'pending' || p.status === 'in_transit').length,
+      cityWiseData: {},
+      revenueByCity: {},
+      paymentStatus: {
+        paid: filteredParcels.filter(p => p.isPaid).length,
+        pending: filteredParcels.filter(p => !p.isPaid).length
+      }
+    };
 
-  return (
-    <div className="space-y-8">
-      <div className="sm:flex sm:items-center">
-        <div className="sm:flex-auto">
-          <h1 className="text-2xl font-semibold text-gray-900">Financial Reports</h1>
-        </div>
-        <div className="mt-4 sm:mt-0 sm:ml-16 sm:flex-none">
-          <PDFDownloadLink 
-            document={
-              <ReportDocument 
-                reports={filteredReports} 
-                companyBalance={companyBalance}
-                totalRevenue={totalRevenue}
-              />
+    // Calculate city-wise data
+    cities.forEach(city => {
+      const cityParcels = filteredParcels.filter(parcel => 
+        parcel.dispatchBranch?.toLowerCase().includes(city.toLowerCase()) ||
+        parcel.destinationBranch?.toLowerCase().includes(city.toLowerCase())
+      );
+
+      stats.cityWiseData[city] = {
+        total: cityParcels.length,
+        delivered: cityParcels.filter(p => p.status === 'delivered' || p.status === 'received').length,
+        pending: cityParcels.filter(p => p.status === 'pending' || p.status === 'in_transit').length,
+      };
+
+      stats.revenueByCity[city] = cityParcels.reduce((sum, parcel) => 
+        sum + (parcel.isPaid ? parcel.totalAmount : 0), 0
+      );
+    });
+
+    // Calculate total revenue
+    const totalRev = filteredParcels.reduce((sum, parcel) => 
+      sum + (parcel.isPaid ? parcel.totalAmount : 0), 0
+    );
+
+    setParcels(filteredParcels);
+    setTotalRevenue(totalRev);
+    setReportData(stats);
+  };
+
+  const handlePrintReport = () => {
+    const printWindow = window.open('', '_blank');
+    
+    const reportContent = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>HOT Courier Services - Report</title>
+          <style>
+            body { font-family: Arial, sans-serif; padding: 20px; }
+            h1 { color: #EA580C; }
+            table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+            th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+            th { background-color: #f8f9fa; }
+            .summary { margin: 20px 0; padding: 15px; background: #f8f9fa; }
+            .date-range { color: #666; margin-bottom: 20px; }
+          </style>
+        </head>
+        <body>
+          <h1>HOT Courier Services - Report</h1>
+          <div class="date-range">
+            ${dateRange === 'custom' 
+              ? `Period: ${new Date(customStartDate).toLocaleDateString()} - ${new Date(customEndDate).toLocaleDateString()}`
+              : `Period: ${dateRange}`
             }
-            fileName="financial-report.pdf"
-            className="inline-flex items-center justify-center rounded-md border border-transparent bg-orange-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 sm:w-auto"
-          >
-            {({ loading }) => (
-              <>
-                <DocumentDownloadIcon className="-ml-1 mr-2 h-5 w-5" />
-                {loading ? 'Generating...' : 'Download Report'}
-              </>
-            )}
-          </PDFDownloadLink>
-        </div>
-      </div>
-
-      {/* Filters Section */}
-      <div className="bg-white shadow sm:rounded-lg">
-        <div className="px-4 py-5 sm:p-6">
-          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            <div>
-              <label className="block text-sm font-medium text-gray-700">City</label>
-              <select
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-orange-500 focus:ring-orange-500"
-                value={filterCity}
-                onChange={(e) => setFilterCity(e.target.value)}
-              >
-                <option value="all">All Cities</option>
-                <option value="harare">Harare</option>
-                <option value="bulawayo">Bulawayo</option>
-                <option value="gweru">Gweru</option>
-                <option value="mutare">Mutare</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Date Range</label>
-              <select
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-orange-500 focus:ring-orange-500"
-                value={filterDate}
-                onChange={(e) => setFilterDate(e.target.value)}
-              >
-                <option value="all">All Time</option>
-                <option value="daily">Daily</option>
-                <option value="weekly">Weekly</option>
-                <option value="monthly">Monthly</option>
-                <option value="custom">Custom Range</option>
-              </select>
-            </div>
-
-            {filterDate === 'custom' && (
-              <div className="sm:col-span-2 lg:col-span-1">
-                <label className="block text-sm font-medium text-gray-700">Custom Date Range</label>
-                <div className="mt-1 flex space-x-4">
-                  <input
-                    type="date"
-                    className="block w-full rounded-md border-gray-300 shadow-sm focus:border-orange-500 focus:ring-orange-500"
-                    value={dateRange.start}
-                    onChange={(e) => setDateRange({ ...dateRange, start: e.target.value })}
-                  />
-                  <input
-                    type="date"
-                    className="block w-full rounded-md border-gray-300 shadow-sm focus:border-orange-500 focus:ring-orange-500"
-                    value={dateRange.end}
-                    onChange={(e) => setDateRange({ ...dateRange, end: e.target.value })}
-                  />
-                </div>
-              </div>
-            )}
+            ${selectedCity !== 'all' ? ` | City: ${selectedCity}` : ''}
           </div>
-        </div>
-      </div>
 
-      {/* Financial Summary Cards */}
-      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
-        <div className="bg-white overflow-hidden shadow rounded-lg">
-          <div className="px-4 py-5 sm:p-6">
-            <dt className="text-sm font-medium text-gray-500 truncate">Total Revenue</dt>
-            <dd className="mt-1 text-3xl font-semibold text-gray-900">${totalRevenue}</dd>
+          <div class="summary">
+            <h2>Summary</h2>
+            <p>Total Parcels: ${reportData.totalParcels}</p>
+            <p>Total Revenue: $${totalRevenue.toFixed(2)}</p>
+            <p>Delivery Rate: ${reportData.totalParcels ? 
+              ((reportData.deliveredParcels / reportData.totalParcels) * 100).toFixed(1) : 0}%</p>
           </div>
-        </div>
-        <div className="bg-white overflow-hidden shadow rounded-lg">
-          <div className="px-4 py-5 sm:p-6">
-            <dt className="text-sm font-medium text-gray-500 truncate">Company Balance</dt>
-            <dd className="mt-1 text-3xl font-semibold text-gray-900">${companyBalance}</dd>
-          </div>
-        </div>
-        <div className="bg-white overflow-hidden shadow rounded-lg">
-          <div className="px-4 py-5 sm:p-6">
-            <dt className="text-sm font-medium text-gray-500 truncate">Pending Amount</dt>
-            <dd className="mt-1 text-3xl font-semibold text-gray-900">${pendingAmount}</dd>
-          </div>
-        </div>
-        <div className="bg-white overflow-hidden shadow rounded-lg">
-          <div className="px-4 py-5 sm:p-6">
-            <dt className="text-sm font-medium text-gray-500 truncate">Net Balance</dt>
-            <dd className="mt-1 text-3xl font-semibold text-gray-900">${companyBalance - pendingAmount}</dd>
-          </div>
-        </div>
-      </div>
 
-      {/* Transactions Table */}
-      <div className="bg-white shadow sm:rounded-lg overflow-hidden">
-        <div className="min-w-full divide-y divide-gray-200">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
+          <h2>City-wise Report</h2>
+          <table>
+            <thead>
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Sender</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Receiver</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                <th>City</th>
+                <th>Total Parcels</th>
+                <th>Delivered</th>
+                <th>Pending</th>
+                <th>Revenue</th>
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {filteredReports.map((report) => (
-                <tr key={report.id}>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{report.id}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{report.sender}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{report.receiver}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                      report.status === 'delivered' ? 'bg-green-100 text-green-800' : 
-                      report.status === 'pending' ? 'bg-yellow-100 text-yellow-800' : 
-                      'bg-red-100 text-red-800'
-                    }`}>
-                      {report.status}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${report.amount}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {new Date(report.createdAt).toLocaleDateString()}
-                  </td>
+            <tbody>
+              ${cities.map(city => `
+                <tr>
+                  <td>${city}</td>
+                  <td>${reportData.cityWiseData[city]?.total || 0}</td>
+                  <td>${reportData.cityWiseData[city]?.delivered || 0}</td>
+                  <td>${reportData.cityWiseData[city]?.pending || 0}</td>
+                  <td>$${reportData.revenueByCity[city]?.toFixed(2) || '0.00'}</td>
                 </tr>
-              ))}
+              `).join('')}
             </tbody>
           </table>
+
+          <div style="margin-top: 30px; text-align: center; color: #666;">
+            <p>Generated on ${new Date().toLocaleString()}</p>
+          </div>
+        </body>
+      </html>
+    `;
+
+    printWindow.document.write(reportContent);
+    printWindow.document.close();
+    printWindow.focus();
+    setTimeout(() => {
+      printWindow.print();
+    }, 250);
+  };
+
+  return (
+    <div className="px-4 sm:px-6 lg:px-8">
+      <div className="sm:flex sm:items-center">
+        <div className="sm:flex-auto">
+          <h1 className="text-2xl font-semibold text-gray-900">Reports</h1>
+        </div>
+        <div className="mt-4 sm:mt-0 sm:ml-16 sm:flex-none">
+          <button
+            onClick={handlePrintReport}
+            className="inline-flex items-center justify-center rounded-md border border-transparent bg-orange-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 sm:w-auto"
+          >
+            <PrinterIcon className="-ml-1 mr-2 h-5 w-5" />
+            Print Report
+          </button>
+        </div>
+      </div>
+
+      {/* Filters */}
+      <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div>
+          <label className="block text-sm font-medium text-gray-700">Date Range</label>
+          <select
+            value={dateRange}
+            onChange={(e) => setDateRange(e.target.value)}
+            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-orange-500 focus:ring-orange-500 sm:text-sm"
+          >
+            <option value="all">All Time</option>
+            <option value="today">Today</option>
+            <option value="week">Last 7 Days</option>
+            <option value="month">Last 30 Days</option>
+            <option value="custom">Custom Range</option>
+          </select>
+        </div>
+
+        {dateRange === 'custom' && (
+          <>
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Start Date</label>
+              <input
+                type="date"
+                value={customStartDate}
+                onChange={(e) => setCustomStartDate(e.target.value)}
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-orange-500 focus:ring-orange-500 sm:text-sm"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700">End Date</label>
+              <input
+                type="date"
+                value={customEndDate}
+                onChange={(e) => setCustomEndDate(e.target.value)}
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-orange-500 focus:ring-orange-500 sm:text-sm"
+              />
+            </div>
+          </>
+        )}
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700">City</label>
+          <select
+            value={selectedCity}
+            onChange={(e) => setSelectedCity(e.target.value)}
+            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-orange-500 focus:ring-orange-500 sm:text-sm"
+          >
+            <option value="all">All Cities</option>
+            {cities.map(city => (
+              <option key={city} value={city}>{city}</option>
+            ))}
+          </select>
+        </div>
+      </div>
+
+      {/* Summary Cards */}
+      <div className="mt-8 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="bg-white overflow-hidden shadow rounded-lg">
+          <div className="p-5">
+            <div className="flex items-center">
+              <div className="flex-shrink-0">
+                <DocumentChartBarIcon className="h-6 w-6 text-gray-400" />
+              </div>
+              <div className="ml-5 w-0 flex-1">
+                <dl>
+                  <dt className="text-sm font-medium text-gray-500 truncate">Total Parcels</dt>
+                  <dd className="text-lg font-medium text-gray-900">{reportData.totalParcels}</dd>
+                </dl>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white overflow-hidden shadow rounded-lg">
+          <div className="p-5">
+            <div className="flex items-center">
+              <div className="flex-shrink-0">
+                <CalendarIcon className="h-6 w-6 text-gray-400" />
+              </div>
+              <div className="ml-5 w-0 flex-1">
+                <dl>
+                  <dt className="text-sm font-medium text-gray-500 truncate">Total Revenue</dt>
+                  <dd className="text-lg font-medium text-gray-900">${totalRevenue.toFixed(2)}</dd>
+                </dl>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white overflow-hidden shadow rounded-lg">
+          <div className="p-5">
+            <div className="flex items-center">
+              <div className="flex-shrink-0">
+                <MapPinIcon className="h-6 w-6 text-gray-400" />
+              </div>
+              <div className="ml-5 w-0 flex-1">
+                <dl>
+                  <dt className="text-sm font-medium text-gray-500 truncate">Delivery Rate</dt>
+                  <dd className="text-lg font-medium text-gray-900">
+                    {reportData.totalParcels ? 
+                      `${((reportData.deliveredParcels / reportData.totalParcels) * 100).toFixed(1)}%` 
+                      : '0%'}
+                  </dd>
+                </dl>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* City-wise Reports */}
+      <div className="mt-8">
+        <h2 className="text-lg font-medium text-gray-900">City-wise Reports</h2>
+        <div className="mt-4 flex flex-col">
+          <div className="-my-2 -mx-4 overflow-x-auto sm:-mx-6 lg:-mx-8">
+            <div className="inline-block min-w-full py-2 align-middle md:px-6 lg:px-8">
+              <div className="overflow-hidden shadow ring-1 ring-black ring-opacity-5 md:rounded-lg">
+                <table className="min-w-full divide-y divide-gray-300">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">City</th>
+                      <th className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Total Parcels</th>
+                      <th className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Delivered</th>
+                      <th className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Pending</th>
+                      <th className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Revenue</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-200 bg-white">
+                    {cities.map(city => (
+                      <tr key={city}>
+                        <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">{city}</td>
+                        <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                          {reportData.cityWiseData[city]?.total || 0}
+                        </td>
+                        <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                          {reportData.cityWiseData[city]?.delivered || 0}
+                        </td>
+                        <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                          {reportData.cityWiseData[city]?.pending || 0}
+                        </td>
+                        <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                          ${reportData.revenueByCity[city]?.toFixed(2) || '0.00'}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>

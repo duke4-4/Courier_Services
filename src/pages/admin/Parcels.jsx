@@ -241,6 +241,9 @@ const Parcels = () => {
                       Receiver
                     </th>
                     <th className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
+                      Branch
+                    </th>
+                    <th className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
                       Status
                     </th>
                     <th className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
@@ -260,11 +263,26 @@ const Parcels = () => {
                       <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
                         {parcel.id}
                       </td>
-                      <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                        {parcel.sender}
+                      <td className="px-3 py-4 text-sm text-gray-500">
+                        <div>
+                          <div className="font-medium text-gray-900">{parcel.senderName}</div>
+                          <div className="text-gray-500">{parcel.senderEmail}</div>
+                          <div className="text-xs text-gray-400">{parcel.dispatchBranch}</div>
+                        </div>
+                      </td>
+                      <td className="px-3 py-4 text-sm text-gray-500">
+                        <div>
+                          <div className="font-medium text-gray-900">{parcel.receiverName}</div>
+                          <div className="text-gray-500">{parcel.receiverEmail}</div>
+                          <div className="text-xs text-gray-400">{parcel.receiverPhone}</div>
+                        </div>
                       </td>
                       <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                        {parcel.receiver}
+                        <div>
+                          <div className="text-gray-900">{parcel.dispatchBranch}</div>
+                          <div className="text-xs text-gray-500">→</div>
+                          <div className="text-gray-900">{parcel.destinationBranch}</div>
+                        </div>
                       </td>
                       <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
                         <span className={`inline-flex rounded-full px-2 text-xs font-semibold leading-5 ${
@@ -278,7 +296,7 @@ const Parcels = () => {
                         </span>
                       </td>
                       <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                        ${parcel.amount}
+                        ${parcel.amount?.toFixed(2) || '0.00'}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                         <span className={`inline-flex rounded-full px-2 text-xs font-semibold leading-5 ${
@@ -392,7 +410,7 @@ const Parcels = () => {
               {/* Sender Details */}
               <div className="bg-gray-50 p-4 rounded-lg">
                 <h4 className="text-base font-medium text-gray-900 mb-4">Sender Details</h4>
-                <dl className="space-y-3">
+                <dl className="space-y-2">
                   <div>
                     <dt className="text-sm font-medium text-gray-500">Name</dt>
                     <dd className="mt-1 text-sm text-gray-900">{selectedParcel.senderName}</dd>
@@ -402,8 +420,31 @@ const Parcels = () => {
                     <dd className="mt-1 text-sm text-gray-900">{selectedParcel.senderEmail}</dd>
                   </div>
                   <div>
-                    <dt className="text-sm font-medium text-gray-500">Operator ID</dt>
-                    <dd className="mt-1 text-sm text-gray-900">{selectedParcel.senderBranchId}</dd>
+                    <dt className="text-sm font-medium text-gray-500">Branch</dt>
+                    <dd className="mt-1 text-sm text-gray-900">{selectedParcel.dispatchBranch}</dd>
+                  </div>
+                </dl>
+              </div>
+
+              {/* Receiver Details */}
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <h4 className="text-base font-medium text-gray-900 mb-4">Receiver Details</h4>
+                <dl className="space-y-2">
+                  <div>
+                    <dt className="text-sm font-medium text-gray-500">Name</dt>
+                    <dd className="mt-1 text-sm text-gray-900">{selectedParcel.receiverName}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-sm font-medium text-gray-500">Email</dt>
+                    <dd className="mt-1 text-sm text-gray-900">{selectedParcel.receiverEmail}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-sm font-medium text-gray-500">Phone</dt>
+                    <dd className="mt-1 text-sm text-gray-900">{selectedParcel.receiverPhone}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-sm font-medium text-gray-500">Branch</dt>
+                    <dd className="mt-1 text-sm text-gray-900">{selectedParcel.destinationBranch}</dd>
                   </div>
                 </dl>
               </div>
@@ -414,18 +455,22 @@ const Parcels = () => {
                 <dl className="space-y-3">
                   <div>
                     <dt className="text-sm font-medium text-gray-500">Base Amount</dt>
-                    <dd className="mt-1 text-sm text-gray-900">${selectedParcel.amount.toFixed(2)}</dd>
+                    <dd className="mt-1 text-sm text-gray-900">
+                      ${selectedParcel.amount?.toFixed(2) || '0.00'}
+                    </dd>
                   </div>
                   {selectedParcel.floatAmount > 0 && (
                     <div>
                       <dt className="text-sm font-medium text-gray-500">Float Amount</dt>
-                      <dd className="mt-1 text-sm text-gray-900">${selectedParcel.floatAmount.toFixed(2)}</dd>
+                      <dd className="mt-1 text-sm text-gray-900">
+                        ${selectedParcel.floatAmount?.toFixed(2) || '0.00'}
+                      </dd>
                     </div>
                   )}
                   <div>
                     <dt className="text-sm font-medium text-gray-500">Total Amount</dt>
                     <dd className="mt-1 text-sm font-medium text-orange-600">
-                      ${selectedParcel.totalAmount.toFixed(2)}
+                      ${selectedParcel.totalAmount?.toFixed(2) || '0.00'}
                     </dd>
                   </div>
                   <div>
