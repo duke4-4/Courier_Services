@@ -29,7 +29,8 @@ export const initializeData = () => {
       password: 'operator123',
       name: 'Harare Central Operator',
       role: 'operator',
-      branchId: 'BR001'
+      branchId: 'BR001',
+      branchName: 'Harare Central'
     },
     {
       id: 'op-2',
@@ -37,7 +38,26 @@ export const initializeData = () => {
       password: 'operator123',
       name: 'Bulawayo Main Operator',
       role: 'operator',
-      branchId: 'BR002'
+      branchId: 'BR002',
+      branchName: 'Bulawayo Main'
+    },
+    {
+      id: 'op-3',
+      email: 'gweru@hot.co.zw',
+      password: 'operator123',
+      name: 'Gweru Branch Operator',
+      role: 'operator',
+      branchId: 'BR003',
+      branchName: 'Gweru Branch'
+    },
+    {
+      id: 'op-4',
+      email: 'mutare@hot.co.zw',
+      password: 'operator123',
+      name: 'Mutare Branch Operator',
+      role: 'operator',
+      branchId: 'BR004',
+      branchName: 'Mutare Branch'
     },
     {
       id: 'receiver-1',
@@ -67,16 +87,37 @@ export const initializeData = () => {
     const parcels = [
       {
         id: 'PCL1001',
-        sender: 'sender@hot.co.zw',
-        receiver: 'John Doe',
+        senderName: 'Harare Central Operator',
+        senderEmail: 'harare.central@hot.co.zw',
+        senderBranchId: 'BR001',
+        dispatchBranch: 'Harare Central',
+        dispatchAddress: 'Harare CBD',
+        receiverName: 'John Doe',
+        receiverEmail: 'john@example.com',
+        receiverPhone: '+263 77 123 4567',
+        destinationBranch: 'Bulawayo Main',
+        destinationBranchId: 'BR002',
         description: 'Electronics package',
-        dispatchCity: 'harare',
-        destinationCity: 'bulawayo',
+        weight: 5,
         vehicleType: 'van',
-        paymentType: 'prepaid',
+        paymentMethod: 'prepaid',
         status: 'in_transit',
         amount: 50,
+        floatAmount: 0,
+        totalAmount: 50,
+        isPaid: true,
+        paidAt: new Date().toISOString(),
+        paidBy: 'harare.central@hot.co.zw',
         createdAt: new Date().toISOString(),
+        statusUpdates: [
+          {
+            status: 'pending',
+            updatedAt: new Date().toISOString(),
+            updatedBy: 'harare.central@hot.co.zw',
+            branchId: 'BR001',
+            branchName: 'Harare Central'
+          }
+        ]
       },
     ];
     localStorage.setItem('parcels', JSON.stringify(parcels));
