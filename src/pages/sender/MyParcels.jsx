@@ -17,35 +17,31 @@ const MyParcels = ({ user }) => {
   const [selectedParcel, setSelectedParcel] = useState(null);
 
   const loadParcels = () => {
+    console.log('Loading parcels...'); // Debug log
     const allParcels = loadParcelsWithSync();
     const branchParcels = allParcels.filter(parcel => 
       parcel.senderBranchId === user.branchId ||
       parcel.destinationBranchId === user.branchId
     );
     setParcels(branchParcels);
-    
-    // Sync data after loading
-    syncData();
+    syncData(); // Force sync after loading
   };
 
   useEffect(() => {
     loadParcels();
 
     const unsubscribe = subscribeToUpdates((update) => {
+      console.log('Received update:', update); // Debug log
       if ([EVENTS.PARCEL_UPDATED, EVENTS.PARCEL_CREATED, EVENTS.STATUS_UPDATED, 
-           EVENTS.PAYMENT_RECEIVED].includes(update.type)) {
-        const updatedParcel = update.data;
-        if (updatedParcel.senderBranchId === user.branchId || 
-            updatedParcel.destinationBranchId === user.branchId) {
-          loadParcels();
-        }
+           EVENTS.PAYMENT_RECEIVED, 'SYNC'].includes(update.type)) {
+        loadParcels();
       }
     });
 
-    // Poll for updates every 15 seconds
+    // Poll more frequently
     const refreshInterval = setInterval(() => {
       loadParcels();
-    }, 15000);
+    }, 5000); // Poll every 5 seconds
 
     return () => {
       unsubscribe();

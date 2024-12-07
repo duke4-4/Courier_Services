@@ -117,9 +117,11 @@ const NewParcel = ({ user }) => {
     parcels.push(newParcel);
     localStorage.setItem('parcels', JSON.stringify(parcels));
 
-    // Broadcast update and sync
+    // Broadcast and sync
     broadcastUpdate(EVENTS.PARCEL_CREATED, newParcel);
     syncData();
+    
+    console.log('Parcel created and synced:', newParcel); // Debug log
 
     // If prepaid, update revenue
     if (isPrepaid) {

@@ -5,101 +5,137 @@ export const EVENTS = {
   PAYMENT_RECEIVED: 'PAYMENT_RECEIVED'
 };
 
-// Keep track of last sync time globally
-let lastSyncTime = new Date().getTime();
+// Global state for sync
+const SYNC_KEY = 'HOT_COURIER_SYNC';
+const UPDATE_CHANNEL = 'HOT_COURIER_UPDATES';
+let lastSyncTimestamp = Date.now();
 
+// Initialize sync state
+const initSyncState = () => {
+  if (!localStorage.getItem(SYNC_KEY)) {
+    localStorage.setItem(SYNC_KEY, JSON.stringify({
+      lastUpdate: Date.now(),
+      updates: [],
+      activeClients: []
+    }));
+  }
+};
+
+// Broadcast update to all clients
 export const broadcastUpdate = (eventType, data) => {
-  const timestamp = new Date().getTime();
-  
-  // Store the update details
-  const updates = JSON.parse(localStorage.getItem('parcelUpdates') || '[]');
-  updates.push({
+  const timestamp = Date.now();
+  const update = {
+    id: `${timestamp}-${Math.random().toString(36).substr(2, 9)}`,
     type: eventType,
     data,
     timestamp
-  });
-
-  // Keep only last 100 updates
-  if (updates.length > 100) {
-    updates.splice(0, updates.length - 100);
-  }
-
-  // Update localStorage
-  localStorage.setItem('parcelUpdates', JSON.stringify(updates));
-  localStorage.setItem('lastUpdateTime', timestamp.toString());
-
-  // Dispatch event for same-window updates
-  const event = new CustomEvent('hot-courier-update', { 
-    detail: { type: eventType, data, timestamp }
-  });
-  window.dispatchEvent(event);
-};
-
-export const subscribeToUpdates = (callback) => {
-  // Handle same-window updates
-  const handleUpdate = (event) => {
-    callback(event.detail);
   };
 
-  // Check for updates every 2 seconds
-  const checkForUpdates = () => {
-    const updates = JSON.parse(localStorage.getItem('parcelUpdates') || '[]');
-    const newUpdates = updates.filter(update => update.timestamp > lastSyncTime);
+  // Get current sync state
+  const syncState = JSON.parse(localStorage.getItem(SYNC_KEY) || '{}');
+  
+  // Add update to queue
+  syncState.updates = [...(syncState.updates || []), update];
+  syncState.lastUpdate = timestamp;
+  
+  // Keep only last 50 updates
+  if (syncState.updates.length > 50) {
+    syncState.updates = syncState.updates.slice(-50);
+  }
+
+  // Save back to localStorage
+  localStorage.setItem(SYNC_KEY, JSON.stringify(syncState));
+  
+  // Trigger storage event for other tabs
+  localStorage.setItem(UPDATE_CHANNEL, JSON.stringify({ timestamp, id: update.id }));
+};
+
+// Subscribe to updates
+export const subscribeToUpdates = (callback) => {
+  initSyncState();
+  
+  // Generate unique client ID
+  const clientId = `client-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+  
+  // Function to process updates
+  const processUpdates = () => {
+    const syncState = JSON.parse(localStorage.getItem(SYNC_KEY) || '{}');
+    const newUpdates = (syncState.updates || [])
+      .filter(update => update.timestamp > lastSyncTimestamp)
+      .sort((a, b) => a.timestamp - b.timestamp);
 
     if (newUpdates.length > 0) {
-      newUpdates.forEach(update => {
-        callback(update);
-      });
-      lastSyncTime = Math.max(...newUpdates.map(u => u.timestamp));
+      newUpdates.forEach(update => callback(update));
+      lastSyncTimestamp = Math.max(...newUpdates.map(u => u.timestamp));
     }
   };
 
   // Set up polling
-  const pollInterval = setInterval(checkForUpdates, 2000);
+  const pollInterval = setInterval(processUpdates, 1000);
 
-  // Listen for storage events from other tabs/windows
+  // Listen for storage events
   const handleStorageChange = (e) => {
-    if (e.key === 'parcelUpdates' && e.newValue) {
-      checkForUpdates();
+    if (e.key === UPDATE_CHANNEL && e.newValue) {
+      processUpdates();
     }
   };
 
-  window.addEventListener('hot-courier-update', handleUpdate);
   window.addEventListener('storage', handleStorageChange);
 
+  // Register client
+  const registerClient = () => {
+    const syncState = JSON.parse(localStorage.getItem(SYNC_KEY) || '{}');
+    syncState.activeClients = [...(syncState.activeClients || []), clientId];
+    localStorage.setItem(SYNC_KEY, JSON.stringify(syncState));
+  };
+
+  // Unregister client
+  const unregisterClient = () => {
+    const syncState = JSON.parse(localStorage.getItem(SYNC_KEY) || '{}');
+    syncState.activeClients = (syncState.activeClients || []).filter(id => id !== clientId);
+    localStorage.setItem(SYNC_KEY, JSON.stringify(syncState));
+  };
+
+  // Register on start
+  registerClient();
+
   // Initial check
-  checkForUpdates();
+  processUpdates();
 
   // Return cleanup function
   return () => {
-    window.removeEventListener('hot-courier-update', handleUpdate);
-    window.removeEventListener('storage', handleStorageChange);
     clearInterval(pollInterval);
+    window.removeEventListener('storage', handleStorageChange);
+    unregisterClient();
   };
 };
 
-// Helper function to sync data across devices
+// Force sync all data
 export const syncData = () => {
-  const timestamp = new Date().getTime();
+  const timestamp = Date.now();
   const parcels = JSON.parse(localStorage.getItem('parcels') || '[]');
   
-  localStorage.setItem('lastSync', timestamp.toString());
-  localStorage.setItem('syncedParcels', JSON.stringify({
+  localStorage.setItem('PARCELS_SYNC', JSON.stringify({
     timestamp,
-    data: parcels
+    data: parcels,
+    lastSync: timestamp
   }));
+
+  broadcastUpdate('SYNC', { timestamp });
 };
 
-// Add this to MyParcels.jsx loadParcels function
+// Load parcels with sync
 export const loadParcelsWithSync = () => {
-  const allParcels = JSON.parse(localStorage.getItem('parcels') || '[]');
-  const syncedData = JSON.parse(localStorage.getItem('syncedParcels') || '{}');
-  
-  // If synced data is newer, use it
-  if (syncedData.timestamp > lastSyncTime) {
-    lastSyncTime = syncedData.timestamp;
-    return syncedData.data;
+  const parcels = JSON.parse(localStorage.getItem('parcels') || '[]');
+  const syncData = JSON.parse(localStorage.getItem('PARCELS_SYNC') || '{}');
+
+  if (syncData.timestamp > lastSyncTimestamp) {
+    lastSyncTimestamp = syncData.timestamp;
+    return syncData.data;
   }
-  
-  return allParcels;
-}; 
+
+  return parcels;
+};
+
+// Initialize sync state when module loads
+initSyncState(); 
