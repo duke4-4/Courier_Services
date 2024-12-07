@@ -18,3 +18,42 @@ Currently, two official plugins are available:
 - add receiver dashboard
 - add auth
 - add reports
+## Recent Updates
+
+### Completed Features
+- Added admin dashboard with reports and analytics
+- Added sender dashboard with parcel management
+- Added receiver dashboard with parcel tracking
+- Added authentication system
+- Added comprehensive reporting system including:
+  - Revenue tracking
+  - Parcel status tracking
+  - City-wise analytics
+  - Custom date range filtering
+- Added receipt printing functionality with PDF generation
+- Added vehicle type selection with dynamic pricing:
+  - Motorcycle (up to 20kg)
+  - Car (up to 50kg) 
+  - Van (up to 200kg)
+  - Truck (up to 1000kg)
+  - Refrigerated truck (temperature controlled)
+- Added dynamic charge calculation based on:
+  - Weight
+  - Vehicle type
+  - Distance
+- Added UI improvements:
+  - Tailwind CSS styling
+  - Heroicons integration
+  - Responsive layouts
+  - Form handling
+
+## Future Enhancements
+- Add real-time notifications system
+- Enable receipt printing for receivers
+- Add parcel received confirmation
+- Add payment status tracking
+- Add multi-language support
+- Add route optimization
+- Add mobile app version
+- Add API documentation
+- Add automated testing
