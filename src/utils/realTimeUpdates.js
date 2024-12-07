@@ -6,33 +6,57 @@ export const EVENTS = {
 };
 
 export const broadcastUpdate = (eventType, data) => {
-  const event = new CustomEvent('hot-courier-update', {
-    detail: { type: eventType, data, timestamp: new Date().toISOString() }
-  });
-  window.dispatchEvent(event);
-  
-  // Also store the last update in localStorage to handle cross-tab updates
-  localStorage.setItem('lastUpdate', JSON.stringify({
+  // Create the update object
+  const update = {
     type: eventType,
     data,
     timestamp: new Date().toISOString()
-  }));
+  };
+
+  // Store the update in localStorage
+  localStorage.setItem('lastUpdate', JSON.stringify(update));
+
+  // Dispatch event for same-window updates
+  const event = new CustomEvent('hot-courier-update', { detail: update });
+  window.dispatchEvent(event);
+
+  // Store last update timestamp
+  localStorage.setItem('lastUpdateTime', new Date().toISOString());
 };
 
 export const subscribeToUpdates = (callback) => {
+  let lastCheck = new Date().toISOString();
+
+  // Handle same-window updates
   const handleUpdate = (event) => {
     callback(event.detail);
   };
 
-  window.addEventListener('hot-courier-update', handleUpdate);
-  window.addEventListener('storage', (e) => {
-    if (e.key === 'lastUpdate') {
+  // Handle cross-window/tab updates
+  const handleStorageChange = (e) => {
+    if (e.key === 'lastUpdate' && e.newValue) {
       const update = JSON.parse(e.newValue);
       callback(update);
     }
-  });
+  };
 
+  // Poll for updates every 5 seconds
+  const pollInterval = setInterval(() => {
+    const lastUpdateTime = localStorage.getItem('lastUpdateTime');
+    if (lastUpdateTime && lastUpdateTime > lastCheck) {
+      const update = JSON.parse(localStorage.getItem('lastUpdate'));
+      callback(update);
+      lastCheck = lastUpdateTime;
+    }
+  }, 5000);
+
+  window.addEventListener('hot-courier-update', handleUpdate);
+  window.addEventListener('storage', handleStorageChange);
+
+  // Return cleanup function
   return () => {
     window.removeEventListener('hot-courier-update', handleUpdate);
+    window.removeEventListener('storage', handleStorageChange);
+    clearInterval(pollInterval);
   };
 }; 

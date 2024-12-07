@@ -29,14 +29,27 @@ const MyParcels = ({ user }) => {
   useEffect(() => {
     loadParcels();
 
-    // Subscribe to real-time updates
     const unsubscribe = subscribeToUpdates((update) => {
-      if ([EVENTS.PARCEL_UPDATED, EVENTS.STATUS_UPDATED, EVENTS.PAYMENT_RECEIVED].includes(update.type)) {
-        loadParcels();
+      if ([EVENTS.PARCEL_UPDATED, EVENTS.PARCEL_CREATED, EVENTS.STATUS_UPDATED, 
+           EVENTS.PAYMENT_RECEIVED].includes(update.type)) {
+        // Check if update is relevant to this branch
+        const updatedParcel = update.data;
+        if (updatedParcel.senderBranchId === user.branchId || 
+            updatedParcel.destinationBranchId === user.branchId) {
+          loadParcels();
+        }
       }
     });
 
-    return () => unsubscribe();
+    // Poll for updates every 30 seconds
+    const refreshInterval = setInterval(() => {
+      loadParcels();
+    }, 30000);
+
+    return () => {
+      unsubscribe();
+      clearInterval(refreshInterval);
+    };
   }, [user.branchId]);
 
   const filteredParcels = parcels.filter(parcel => {
