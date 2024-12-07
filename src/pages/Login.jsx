@@ -16,13 +16,29 @@ const Login = ({ setUser }) => {
   const handleSubmit = (e) => {
     e.preventDefault();
     
-    // Simulate authentication - In a real app, this would be an API call
+    // Get users from localStorage
     const users = JSON.parse(localStorage.getItem('users') || '[]');
+    console.log('Available users:', users); // Debug log
+
+    // Find matching user
     const user = users.find(
       (u) => u.email === formData.email && u.password === formData.password
     );
+    
+    console.log('Attempting login with:', formData); // Debug log
+    console.log('Found user:', user); // Debug log
 
     if (user) {
+      // Remove password before storing in state
+      const { password, ...userWithoutPassword } = user;
+      
+      // Store user in localStorage
+      localStorage.setItem('user', JSON.stringify(userWithoutPassword));
+      
+      // Update app state
+      setUser(userWithoutPassword);
+
+      // Navigate based on role
       switch (user.role) {
         case 'admin':
           navigate('/admin');
@@ -36,7 +52,6 @@ const Login = ({ setUser }) => {
         default:
           setError('Invalid user role');
       }
-      setUser(user);
     } else {
       setError('Invalid credentials');
     }

@@ -5,16 +5,14 @@ export const initializeData = () => {
     localStorage.clear();
   }
 
-  // Initialize branches
+  // Initialize branches and users
   const branches = [
     { id: 'BR001', name: 'Harare Central', location: 'Harare CBD' },
     { id: 'BR002', name: 'Bulawayo Main', location: 'Bulawayo CBD' },
     { id: 'BR003', name: 'Gweru Branch', location: 'Gweru' },
     { id: 'BR004', name: 'Mutare Branch', location: 'Mutare' }
   ];
-  localStorage.setItem('branches', JSON.stringify(branches));
 
-  // Initialize users with operators
   const users = [
     {
       id: 'admin-1',
@@ -65,24 +63,14 @@ export const initializeData = () => {
       password: 'receiver123',
       role: 'receiver',
       name: 'Receiver User'
-    },
+    }
   ];
+
+  // Always set the initial data
+  localStorage.setItem('branches', JSON.stringify(branches));
   localStorage.setItem('users', JSON.stringify(users));
 
-  // Initialize other data only if it doesn't exist
-  if (!localStorage.getItem('notifications')) {
-    const notifications = [
-      {
-        id: 'notif1',
-        userId: 'admin-1',
-        title: 'New Parcel Created',
-        message: 'A new parcel has been created and is pending approval.',
-        createdAt: new Date().toISOString(),
-      },
-    ];
-    localStorage.setItem('notifications', JSON.stringify(notifications));
-  }
-
+  // Initialize sample parcels if none exist
   if (!localStorage.getItem('parcels')) {
     const parcels = [
       {
@@ -118,11 +106,26 @@ export const initializeData = () => {
             branchName: 'Harare Central'
           }
         ]
-      },
+      }
     ];
     localStorage.setItem('parcels', JSON.stringify(parcels));
   }
 
-  // Verify initialization
-  console.log('Data initialization complete. Users:', JSON.parse(localStorage.getItem('users')));
+  // Initialize notifications if none exist
+  if (!localStorage.getItem('notifications')) {
+    const notifications = [
+      {
+        id: 'notif1',
+        userId: 'admin-1',
+        title: 'New Parcel Created',
+        message: 'A new parcel has been created and is pending approval.',
+        createdAt: new Date().toISOString(),
+      }
+    ];
+    localStorage.setItem('notifications', JSON.stringify(notifications));
+  }
+
+  console.log('Data initialization complete');
+  console.log('Users:', JSON.parse(localStorage.getItem('users')));
+  console.log('Branches:', JSON.parse(localStorage.getItem('branches')));
 }; 
