@@ -16,15 +16,15 @@ const MyParcels = ({ user }) => {
   const [showUpdateModal, setShowUpdateModal] = useState(false);
   const [selectedParcel, setSelectedParcel] = useState(null);
 
-  const loadParcels = () => {
-    console.log('Loading parcels...'); // Debug log
-    const allParcels = loadParcelsWithSync();
+  const loadParcels = async () => {
+    console.log('Loading parcels...');
+    const allParcels = await loadParcelsWithSync();
     const branchParcels = allParcels.filter(parcel => 
       parcel.senderBranchId === user.branchId ||
       parcel.destinationBranchId === user.branchId
     );
     setParcels(branchParcels);
-    syncData(); // Force sync after loading
+    await syncData();
   };
 
   useEffect(() => {

@@ -1,5 +1,13 @@
 {
-  "rewrites": [
-    { "source": "/(.*)", "destination": "/" }
-  ]
+  "version": 2,
+  "routes": [
+    {
+      "src": "/api/sync",
+      "dest": "/api/sync.js"
+    }
+  ],
+  "env": {
+    "REDIS_URL": "@redis-url",
+    "REDIS_TOKEN": "@redis-token"
+  }
 }

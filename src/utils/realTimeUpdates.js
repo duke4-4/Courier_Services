@@ -1,3 +1,5 @@
+import { syncWithServer, getServerData } from '../api/sync';
+
 export const EVENTS = {
   PARCEL_UPDATED: 'PARCEL_UPDATED',
   PARCEL_CREATED: 'PARCEL_CREATED',
@@ -5,24 +7,11 @@ export const EVENTS = {
   PAYMENT_RECEIVED: 'PAYMENT_RECEIVED'
 };
 
-// Global state for sync
-const SYNC_KEY = 'HOT_COURIER_SYNC';
-const UPDATE_CHANNEL = 'HOT_COURIER_UPDATES';
+// Keep track of last sync time globally
 let lastSyncTimestamp = Date.now();
 
-// Initialize sync state
-const initSyncState = () => {
-  if (!localStorage.getItem(SYNC_KEY)) {
-    localStorage.setItem(SYNC_KEY, JSON.stringify({
-      lastUpdate: Date.now(),
-      updates: [],
-      activeClients: []
-    }));
-  }
-};
-
-// Broadcast update to all clients
-export const broadcastUpdate = (eventType, data) => {
+// Broadcast update to all clients and server
+export const broadcastUpdate = async (eventType, data) => {
   const timestamp = Date.now();
   const update = {
     id: `${timestamp}-${Math.random().toString(36).substr(2, 9)}`,
@@ -31,111 +20,77 @@ export const broadcastUpdate = (eventType, data) => {
     timestamp
   };
 
-  // Get current sync state
-  const syncState = JSON.parse(localStorage.getItem(SYNC_KEY) || '{}');
-  
-  // Add update to queue
-  syncState.updates = [...(syncState.updates || []), update];
-  syncState.lastUpdate = timestamp;
-  
-  // Keep only last 50 updates
-  if (syncState.updates.length > 50) {
-    syncState.updates = syncState.updates.slice(-50);
-  }
+  // Save to localStorage
+  const updates = JSON.parse(localStorage.getItem('updates') || '[]');
+  updates.push(update);
+  localStorage.setItem('updates', JSON.stringify(updates));
 
-  // Save back to localStorage
-  localStorage.setItem(SYNC_KEY, JSON.stringify(syncState));
-  
-  // Trigger storage event for other tabs
-  localStorage.setItem(UPDATE_CHANNEL, JSON.stringify({ timestamp, id: update.id }));
+  // Sync with server
+  await syncWithServer({
+    type: 'UPDATE',
+    update,
+    parcels: JSON.parse(localStorage.getItem('parcels') || '[]')
+  });
+
+  // Trigger local update
+  window.dispatchEvent(new CustomEvent('parcel-update', { detail: update }));
 };
 
-// Subscribe to updates
 export const subscribeToUpdates = (callback) => {
-  initSyncState();
-  
-  // Generate unique client ID
-  const clientId = `client-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-  
-  // Function to process updates
-  const processUpdates = () => {
-    const syncState = JSON.parse(localStorage.getItem(SYNC_KEY) || '{}');
-    const newUpdates = (syncState.updates || [])
-      .filter(update => update.timestamp > lastSyncTimestamp)
-      .sort((a, b) => a.timestamp - b.timestamp);
+  let pollInterval;
 
-    if (newUpdates.length > 0) {
-      newUpdates.forEach(update => callback(update));
-      lastSyncTimestamp = Math.max(...newUpdates.map(u => u.timestamp));
+  const processServerUpdates = async () => {
+    const serverData = await getServerData();
+    if (serverData && serverData.timestamp > lastSyncTimestamp) {
+      // Update local storage with server data
+      localStorage.setItem('parcels', JSON.stringify(serverData.parcels));
+      lastSyncTimestamp = serverData.timestamp;
+      callback({ type: 'SYNC', data: serverData });
     }
   };
 
-  // Set up polling
-  const pollInterval = setInterval(processUpdates, 1000);
+  // Poll server every 5 seconds
+  pollInterval = setInterval(processServerUpdates, 5000);
 
-  // Listen for storage events
-  const handleStorageChange = (e) => {
-    if (e.key === UPDATE_CHANNEL && e.newValue) {
-      processUpdates();
-    }
+  // Local updates
+  const handleLocalUpdate = (event) => {
+    callback(event.detail);
   };
 
-  window.addEventListener('storage', handleStorageChange);
+  window.addEventListener('parcel-update', handleLocalUpdate);
 
-  // Register client
-  const registerClient = () => {
-    const syncState = JSON.parse(localStorage.getItem(SYNC_KEY) || '{}');
-    syncState.activeClients = [...(syncState.activeClients || []), clientId];
-    localStorage.setItem(SYNC_KEY, JSON.stringify(syncState));
-  };
+  // Initial sync
+  processServerUpdates();
 
-  // Unregister client
-  const unregisterClient = () => {
-    const syncState = JSON.parse(localStorage.getItem(SYNC_KEY) || '{}');
-    syncState.activeClients = (syncState.activeClients || []).filter(id => id !== clientId);
-    localStorage.setItem(SYNC_KEY, JSON.stringify(syncState));
-  };
-
-  // Register on start
-  registerClient();
-
-  // Initial check
-  processUpdates();
-
-  // Return cleanup function
   return () => {
     clearInterval(pollInterval);
-    window.removeEventListener('storage', handleStorageChange);
-    unregisterClient();
+    window.removeEventListener('parcel-update', handleLocalUpdate);
   };
 };
 
-// Force sync all data
-export const syncData = () => {
+export const syncData = async () => {
+  const parcels = JSON.parse(localStorage.getItem('parcels') || '[]');
   const timestamp = Date.now();
-  const parcels = JSON.parse(localStorage.getItem('parcels') || '[]');
-  
-  localStorage.setItem('PARCELS_SYNC', JSON.stringify({
+
+  // Sync with server
+  await syncWithServer({
+    type: 'SYNC',
     timestamp,
-    data: parcels,
-    lastSync: timestamp
-  }));
-
-  broadcastUpdate('SYNC', { timestamp });
-};
-
-// Load parcels with sync
-export const loadParcelsWithSync = () => {
-  const parcels = JSON.parse(localStorage.getItem('parcels') || '[]');
-  const syncData = JSON.parse(localStorage.getItem('PARCELS_SYNC') || '{}');
-
-  if (syncData.timestamp > lastSyncTimestamp) {
-    lastSyncTimestamp = syncData.timestamp;
-    return syncData.data;
-  }
+    parcels
+  });
 
   return parcels;
 };
 
-// Initialize sync state when module loads
-initSyncState(); 
+export const loadParcelsWithSync = async () => {
+  // Get latest data from server
+  const serverData = await getServerData();
+  
+  if (serverData && serverData.timestamp > lastSyncTimestamp) {
+    lastSyncTimestamp = serverData.timestamp;
+    localStorage.setItem('parcels', JSON.stringify(serverData.parcels));
+    return serverData.parcels;
+  }
+
+  return JSON.parse(localStorage.getItem('parcels') || '[]');
+}; 
