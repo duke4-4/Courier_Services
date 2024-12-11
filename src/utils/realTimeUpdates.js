@@ -1,4 +1,5 @@
-import { syncWithServer, getServerData } from '../api/sync';
+import { webSocket } from '../services/websocket';
+import { parcelApi } from '../services/api';
 
 export const EVENTS = {
   PARCEL_UPDATED: 'PARCEL_UPDATED',
@@ -7,90 +8,48 @@ export const EVENTS = {
   PAYMENT_RECEIVED: 'PAYMENT_RECEIVED'
 };
 
-// Keep track of last sync time globally
-let lastSyncTimestamp = Date.now();
-
-// Broadcast update to all clients and server
+// Broadcast update to all clients via WebSocket
 export const broadcastUpdate = async (eventType, data) => {
-  const timestamp = Date.now();
-  const update = {
-    id: `${timestamp}-${Math.random().toString(36).substr(2, 9)}`,
-    type: eventType,
-    data,
-    timestamp
-  };
+  try {
+    // Send update to server
+    const response = await parcelApi.updateParcel(data);
+    
+    // Emit websocket event
+    webSocket.emit('update', {
+      type: eventType,
+      data: response.data,
+      timestamp: Date.now()
+    });
 
-  // Save to localStorage
-  const updates = JSON.parse(localStorage.getItem('updates') || '[]');
-  updates.push(update);
-  localStorage.setItem('updates', JSON.stringify(updates));
-
-  // Sync with server
-  await syncWithServer({
-    type: 'UPDATE',
-    update,
-    parcels: JSON.parse(localStorage.getItem('parcels') || '[]')
-  });
-
-  // Trigger local update
-  window.dispatchEvent(new CustomEvent('parcel-update', { detail: update }));
+    // Return the server response
+    return response.data;
+  } catch (error) {
+    console.error('Failed to broadcast update:', error);
+    throw error;
+  }
 };
 
 export const subscribeToUpdates = (callback) => {
-  let pollInterval;
-
-  const processServerUpdates = async () => {
-    const serverData = await getServerData();
-    if (serverData && serverData.timestamp > lastSyncTimestamp) {
-      // Update local storage with server data
-      localStorage.setItem('parcels', JSON.stringify(serverData.parcels));
-      lastSyncTimestamp = serverData.timestamp;
-      callback({ type: 'SYNC', data: serverData });
-    }
-  };
-
-  // Poll server every 5 seconds
-  pollInterval = setInterval(processServerUpdates, 5000);
-
-  // Local updates
-  const handleLocalUpdate = (event) => {
-    callback(event.detail);
-  };
-
-  window.addEventListener('parcel-update', handleLocalUpdate);
-
-  // Initial sync
-  processServerUpdates();
-
-  return () => {
-    clearInterval(pollInterval);
-    window.removeEventListener('parcel-update', handleLocalUpdate);
-  };
-};
-
-export const syncData = async () => {
-  const parcels = JSON.parse(localStorage.getItem('parcels') || '[]');
-  const timestamp = Date.now();
-
-  // Sync with server
-  await syncWithServer({
-    type: 'SYNC',
-    timestamp,
-    parcels
+  // Subscribe to WebSocket events
+  const unsubscribeWs = webSocket.subscribe('parcel-update', (update) => {
+    callback(update);
   });
 
-  return parcels;
+  // Initial data load
+  loadParcelsWithSync();
+
+  // Return cleanup function
+  return () => {
+    unsubscribeWs();
+  };
 };
 
 export const loadParcelsWithSync = async () => {
-  // Get latest data from server
-  const serverData = await getServerData();
-  
-  if (serverData && serverData.timestamp > lastSyncTimestamp) {
-    lastSyncTimestamp = serverData.timestamp;
-    localStorage.setItem('parcels', JSON.stringify(serverData.parcels));
-    return serverData.parcels;
+  try {
+    const response = await parcelApi.getParcels();
+    return response.data;
+  } catch (error) {
+    console.error('Failed to load parcels:', error);
+    throw error;
   }
-
-  return JSON.parse(localStorage.getItem('parcels') || '[]');
 }; 

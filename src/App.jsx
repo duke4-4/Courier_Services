@@ -1,25 +1,15 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import Login from './pages/Login';
 import AdminDashboard from './pages/admin/AdminDashboard';
 import ReceiverDashboard from './pages/receiver/ReceiverDashboard';
 import OperatorDashboard from './pages/operator/OperatorDashboard';
 import TrackParcel from './pages/TrackParcel';
-import { initializeData } from './utils/initializeData';
 
 const App = () => {
   const [user, setUser] = useState(null);
 
-  useEffect(() => {
-    // Initialize data
-    initializeData();
-    
-    // Check for logged in user
-    const loggedInUser = localStorage.getItem('user');
-    if (loggedInUser) {
-      setUser(JSON.parse(loggedInUser));
-    }
-  }, []);
+  // ... existing code ...
 
   const getDashboardComponent = () => {
     switch (user?.role) {

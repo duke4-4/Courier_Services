@@ -1,59 +1,31 @@
 import { useState } from 'react';
-import { useNavigate, useLocation, Link } from 'react-router-dom';
-import { EnvelopeIcon, LockClosedIcon } from '@heroicons/react/24/outline/index.js';
-import hotLogo from '../assets/Logoo.png';
+import { useNavigate } from 'react-router-dom';
+import { authApi } from '../services/api/auth';
 
 const Login = ({ setUser }) => {
-  const location = useLocation();
   const navigate = useNavigate();
-  const [formData, setFormData] = useState({
-    email: '',
-    password: '',
-  });
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [successMessage, setSuccessMessage] = useState(location.state?.message || '');
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    
-    // Get users from localStorage
-    const users = JSON.parse(localStorage.getItem('users') || '[]');
-    console.log('Available users:', users); // Debug log
+    setLoading(true);
+    setError('');
 
-    // Find matching user
-    const user = users.find(
-      (u) => u.email === formData.email && u.password === formData.password
-    );
-    
-    console.log('Attempting login with:', formData); // Debug log
-    console.log('Found user:', user); // Debug log
+    try {
+      const formData = new FormData(e.target);
+      const credentials = {
+        email: formData.get('email'),
+        password: formData.get('password'),
+      };
 
-    if (user) {
-      // Remove password before storing in state
-      const { password, ...userWithoutPassword } = user;
-      
-      // Store user in localStorage
-      localStorage.setItem('user', JSON.stringify(userWithoutPassword));
-      
-      // Update app state
-      setUser(userWithoutPassword);
-
-      // Navigate based on role
-      switch (user.role) {
-        case 'admin':
-          navigate('/admin');
-          break;
-        case 'operator':
-          navigate('/operator');
-          break;
-        case 'receiver':
-          navigate('/receiver');
-          break;
-        default:
-          setError('Invalid user role');
-      }
-    } else {
-      setError('Invalid credentials');
+      const userData = await authApi.login(credentials);
+      setUser(userData);
+      navigate('/');
+    } catch (error) {
+      setError(error.response?.data?.message || 'Login failed');
+    } finally {
+      setLoading(false);
     }
   };
 
