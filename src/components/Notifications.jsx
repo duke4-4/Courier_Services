@@ -5,7 +5,7 @@ const Notifications = ({ user }) => {
   const [notifications, setNotifications] = useState([]);
 
   useEffect(() => {
-    // In a real app, this would be an API call
+   
     const userNotifications = JSON.parse(localStorage.getItem('notifications') || '[]')
       .filter(n => n.userId === user.email)
       .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
