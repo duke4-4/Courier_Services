@@ -2,29 +2,41 @@ import { useState, useEffect } from 'react';
 import { 
   PlusIcon, 
   MagnifyingGlassIcon as SearchIcon,
-  TruckIcon,
-  CheckCircleIcon,
   PrinterIcon,
   XMarkIcon
 } from '@heroicons/react/24/outline';
-import { Document, Page, Text, View, StyleSheet, PDFViewer } from '@react-pdf/renderer';
-import classNames from 'classnames';
 import { useNavigate } from 'react-router-dom';
-import { subscribeToUpdates, EVENTS, broadcastUpdate } from '../../utils/realTimeUpdates';
 
-// Create styles for PDF
-const styles = StyleSheet.create({
-  page: {
-    padding: 30,
-    alignItems: 'center',
-    justifyContent: 'center'
-  },
-  text: {
-    marginBottom: 10,
-    fontSize: 14,
-    textAlign: 'center'
-  }
-});
+const ParcelTableHeader = () => {
+  return (
+    <tr>
+      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+        Tracking ID
+      </th>
+      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+        Sender
+      </th>
+      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+        Receiver
+      </th>
+      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+        Status
+      </th>
+      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+        Origin
+      </th>
+      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+        Destination
+      </th>
+      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+        Date
+      </th>
+      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+        Actions
+      </th>
+    </tr>
+  );
+};
 
 const Parcels = () => {
   const navigate = useNavigate();
@@ -33,43 +45,31 @@ const Parcels = () => {
   const [filterStatus, setFilterStatus] = useState('all');
   const [revenue, setRevenue] = useState(0);
   const [selectedParcel, setSelectedParcel] = useState(null);
-  const [showPrintModal, setShowPrintModal] = useState(false);
   const [showStatusModal, setShowStatusModal] = useState(false);
   const [filterPayment, setFilterPayment] = useState('all');
 
-  useEffect(() => {
-    loadData();
-
-    const unsubscribe = subscribeToUpdates((update) => {
-      if ([EVENTS.PARCEL_UPDATED, EVENTS.PARCEL_CREATED, EVENTS.STATUS_UPDATED, 
-           EVENTS.PAYMENT_RECEIVED].includes(update.type)) {
-        loadData();
-      }
-    });
-
-    return () => unsubscribe();
-  }, []);
-
-  const loadData = () => {
-    const storedParcels = JSON.parse(localStorage.getItem('parcels') || '[]');
-    setParcels(storedParcels);
-    const storedRevenue = JSON.parse(localStorage.getItem('revenue') || '0');
-    setRevenue(storedRevenue);
+  const loadData = async () => {
+    try {
+      const data = await parcelApi.getAll();
+      setParcels(data.parcels);
+      setRevenue(data.revenue || 0);
+    } catch (error) {
+      console.error('Failed to load parcels:', error);
+    }
   };
 
-  const updateParcelStatus = (parcelId, newStatus) => {
-    const updatedParcels = parcels.map(parcel => {
-      if (parcel.id === parcelId) {
-        const updatedParcel = { ...parcel, status: newStatus };
-        broadcastUpdate(EVENTS.STATUS_UPDATED, updatedParcel);
-        return updatedParcel;
-      }
-      return parcel;
-    });
-
-    setParcels(updatedParcels);
-    localStorage.setItem('parcels', JSON.stringify(updatedParcels));
-    setShowStatusModal(false);
+  const updateParcelStatus = async (parcelId, newStatus) => {
+    try {
+      const updatedParcel = await parcelApi.updateStatus(parcelId, newStatus);
+      const updatedParcels = parcels.map(parcel => 
+        parcel.id === parcelId ? updatedParcel : parcel
+      );
+      setParcels(updatedParcels);
+      broadcastUpdate(EVENTS.STATUS_UPDATED, updatedParcel);
+      setShowStatusModal(false);
+    } catch (error) {
+      console.error('Failed to update status:', error);
+    }
   };
 
   const updateRevenue = (amount) => {
@@ -90,10 +90,8 @@ const Parcels = () => {
   };
 
   const handlePrintLabel = (parcel) => {
-    // Format the parcel data to match the expected structure
     const formattedParcel = {
       ...parcel,
-      // Ensure these fields exist and are properly formatted
       senderName: parcel.senderName || parcel.sender,
       senderEmail: parcel.senderEmail || parcel.sender,
       receiverName: parcel.receiverName || parcel.receiver,
@@ -114,10 +112,8 @@ const Parcels = () => {
       description: parcel.description
     };
 
-    // Store the formatted parcel temporarily in localStorage
     localStorage.setItem('temp_print_parcel', JSON.stringify(formattedParcel));
     
-    // Navigate to print view
     navigate(`/admin/print?parcelId=${parcel.id}`);
   };
 
@@ -194,32 +190,7 @@ const Parcels = () => {
               </div>
               <table className="min-w-full divide-y divide-gray-300">
                 <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
-                      Parcel ID
-                    </th>
-                    <th className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
-                      Sender
-                    </th>
-                    <th className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
-                      Receiver
-                    </th>
-                    <th className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
-                      Branch
-                    </th>
-                    <th className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
-                      Status
-                    </th>
-                    <th className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
-                      Amount
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Payment Status
-                    </th>
-                    <th className="relative py-3.5 pl-3 pr-4 sm:pr-6">
-                      <span className="sr-only">Actions</span>
-                    </th>
-                  </tr>
+                  <ParcelTableHeader />
                 </thead>
                 <tbody className="divide-y divide-gray-200 bg-white">
                   {filteredParcels.map((parcel) => (
@@ -292,7 +263,9 @@ const Parcels = () => {
                           title="Update Status"
                         >
                           <span className="sr-only">Update Status</span>
-                          {/* You can add an appropriate icon here */}
+                       
+                          <ArrowPathIcon className="h-5 w-5 inline-block" />
+
                           Status
                         </button>
                         <button
@@ -312,7 +285,6 @@ const Parcels = () => {
         </div>
       </div>
 
-      {/* Status Update Modal with Detailed Information */}
       {showStatusModal && selectedParcel && (
         <div className="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 max-w-4xl w-full max-h-[90vh] overflow-y-auto">
@@ -330,7 +302,6 @@ const Parcels = () => {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Branch Information */}
               <div className="bg-gray-50 p-4 rounded-lg">
                 <h4 className="text-base font-medium text-gray-900 mb-4">Branch Information</h4>
                 <dl className="space-y-3">
@@ -346,7 +317,6 @@ const Parcels = () => {
                 </dl>
               </div>
 
-              {/* Status History */}
               <div className="bg-gray-50 p-4 rounded-lg">
                 <h4 className="text-base font-medium text-gray-900 mb-4">Status History</h4>
                 <div className="space-y-4">
@@ -371,7 +341,6 @@ const Parcels = () => {
                 </div>
               </div>
 
-              {/* Sender Details */}
               <div className="bg-gray-50 p-4 rounded-lg">
                 <h4 className="text-base font-medium text-gray-900 mb-4">Sender Details</h4>
                 <dl className="space-y-2">
@@ -390,7 +359,6 @@ const Parcels = () => {
                 </dl>
               </div>
 
-              {/* Receiver Details */}
               <div className="bg-gray-50 p-4 rounded-lg">
                 <h4 className="text-base font-medium text-gray-900 mb-4">Receiver Details</h4>
                 <dl className="space-y-2">
@@ -413,7 +381,6 @@ const Parcels = () => {
                 </dl>
               </div>
 
-              {/* Payment Information */}
               <div className="bg-gray-50 p-4 rounded-lg">
                 <h4 className="text-base font-medium text-gray-900 mb-4">Payment Details</h4>
                 <dl className="space-y-3">
@@ -462,7 +429,6 @@ const Parcels = () => {
               </div>
             </div>
 
-            {/* Action Buttons */}
             <div className="mt-6 flex justify-end space-x-4">
               <button
                 onClick={() => setShowStatusModal(false)}

@@ -17,6 +17,16 @@ const SignUp = () => {
   const handleSubmit = (e) => {
     e.preventDefault();
     
+    // Add console logging
+    console.log('Sign Up Form Data:', {
+      name: formData.name,
+      email: formData.email,
+      password: formData.password,
+      confirmPassword: formData.confirmPassword,
+      role: formData.role,
+      timestamp: new Date().toISOString()
+    });
+    
     if (formData.password !== formData.confirmPassword) {
       setError('Passwords do not match');
       return;
@@ -41,6 +51,8 @@ const SignUp = () => {
     // Add to users array
     users.push(newUser);
     localStorage.setItem('users', JSON.stringify(users));
+
+    console.log('New user created:', newUser);
 
     // Redirect to login
     navigate('/login', { 

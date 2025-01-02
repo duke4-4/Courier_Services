@@ -5,11 +5,10 @@ import AdminDashboard from './pages/admin/AdminDashboard';
 import ReceiverDashboard from './pages/receiver/ReceiverDashboard';
 import OperatorDashboard from './pages/operator/OperatorDashboard';
 import TrackParcel from './pages/TrackParcel';
+import SignUp from './pages/SignUp';
 
 const App = () => {
   const [user, setUser] = useState(null);
-
-  // ... existing code ...
 
   const getDashboardComponent = () => {
     switch (user?.role) {
@@ -28,6 +27,7 @@ const App = () => {
     <BrowserRouter>
       <Routes>
         <Route path="/login" element={<Login setUser={setUser} />} />
+        <Route path="/signup" element={<SignUp />} />
         <Route path="/track" element={<TrackParcel />} />
         <Route path="/admin/*" element={user?.role === 'admin' ? <AdminDashboard user={user} setUser={setUser} /> : <Navigate to="/login" />} />
         <Route path="/operator/*" element={user?.role === 'operator' ? <OperatorDashboard user={user} setUser={setUser} /> : <Navigate to="/login" />} />

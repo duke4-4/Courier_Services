@@ -10,9 +10,13 @@ const Settings = ({ user }) => {
   });
   const [message, setMessage] = useState({ type: '', text: '' });
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     
+    console.log('Settings Form Data:', {
+      ...formData
+    });
+
     if (formData.newPassword !== formData.confirmPassword) {
       setMessage({ type: 'error', text: 'New passwords do not match' });
       return;

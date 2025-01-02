@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { XMarkIcon, PrinterIcon } from '@heroicons/react/24/outline';
 import { useNavigate } from 'react-router-dom';
-import { broadcastUpdate, EVENTS } from '../../utils/realTimeUpdates';
+// import { broadcastUpdate, EVENTS } from '../../utils/realTimeUpdates';
 
 const UpdateParcelStatus = ({ parcel, onClose, onUpdate, user }) => {
   const navigate = useNavigate();

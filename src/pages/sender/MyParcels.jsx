@@ -7,7 +7,7 @@ import {
   CurrencyDollarIcon
 } from '@heroicons/react/24/outline';
 import UpdateParcelStatus from './UpdateParcelStatus';
-import { subscribeToUpdates, EVENTS, syncData, loadParcelsWithSync } from '../../utils/realTimeUpdates';
+// import { subscribeToUpdates, EVENTS, syncData, loadParcelsWithSync } from '../../utils/realTimeUpdates';
 
 const MyParcels = ({ user }) => {
   const [parcels, setParcels] = useState([]);
@@ -27,27 +27,27 @@ const MyParcels = ({ user }) => {
     await syncData();
   };
 
-  useEffect(() => {
-    loadParcels();
+  // useEffect(() => {
+  //   loadParcels();
 
-    const unsubscribe = subscribeToUpdates((update) => {
-      console.log('Received update:', update); // Debug log
-      if ([EVENTS.PARCEL_UPDATED, EVENTS.PARCEL_CREATED, EVENTS.STATUS_UPDATED, 
-           EVENTS.PAYMENT_RECEIVED, 'SYNC'].includes(update.type)) {
-        loadParcels();
-      }
-    });
+  //   const unsubscribe = subscribeToUpdates((update) => {
+  //     console.log('Received update:', update); // Debug log
+  //     if ([EVENTS.PARCEL_UPDATED, EVENTS.PARCEL_CREATED, EVENTS.STATUS_UPDATED, 
+  //          EVENTS.PAYMENT_RECEIVED, 'SYNC'].includes(update.type)) {
+  //       loadParcels();
+  //     }
+  //   });
 
-    // Poll more frequently
-    const refreshInterval = setInterval(() => {
-      loadParcels();
-    }, 5000); // Poll every 5 seconds
+  
+  //   const refreshInterval = setInterval(() => {
+  //     loadParcels();
+  //   }, 5000); 
 
-    return () => {
-      unsubscribe();
-      clearInterval(refreshInterval);
-    };
-  }, [user.branchId]);
+  //   return () => {
+  //     unsubscribe();
+  //     clearInterval(refreshInterval);
+  //   };
+  // }, [user.branchId]);
 
   const filteredParcels = parcels.filter(parcel => {
     const matchesSearch = 

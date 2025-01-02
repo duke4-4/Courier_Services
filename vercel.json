@@ -1,13 +1,15 @@
 {
   "version": 2,
-  "routes": [
+  "builds": [
     {
-      "src": "/api/sync",
-      "dest": "/api/sync.js"
+      "src": "dist/**",
+      "use": "@vercel/static"
     }
   ],
-  "env": {
-    "REDIS_URL": "@redis-url",
-    "REDIS_TOKEN": "@redis-token"
-  }
+  "routes": [
+    {
+      "src": "/(.*)",
+      "dest": "/index.html"
+    }
+  ]
 }
