@@ -78,6 +78,11 @@ const NewParcel = ({ user }) => {
   const handleSubmit = (e) => {
     e.preventDefault();
     
+    // Log form data
+    console.log('Form Data:', formData);
+    console.log('Calculated Charge:', calculatedCharge);
+    console.log('Float Amount:', floatAmount);
+    
     const parcelId = `PCL${Date.now().toString().slice(-6)}`;
     const isPrepaid = formData.paymentMethod === 'prepaid';
     const totalAmount = calculatedCharge + Number(floatAmount || 0);

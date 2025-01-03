@@ -4,10 +4,12 @@ import {
   ClockIcon,
   TruckIcon,
   CheckCircleIcon,
-  CurrencyDollarIcon
+  CurrencyDollarIcon,
+  ArrowPathIcon,
+  EyeIcon,
+  ChevronDownIcon
 } from '@heroicons/react/24/outline';
 import UpdateParcelStatus from './UpdateParcelStatus';
-// import { subscribeToUpdates, EVENTS, syncData, loadParcelsWithSync } from '../../utils/realTimeUpdates';
 
 const MyParcels = ({ user }) => {
   const [parcels, setParcels] = useState([]);
@@ -26,28 +28,6 @@ const MyParcels = ({ user }) => {
     setParcels(branchParcels);
     await syncData();
   };
-
-  // useEffect(() => {
-  //   loadParcels();
-
-  //   const unsubscribe = subscribeToUpdates((update) => {
-  //     console.log('Received update:', update); // Debug log
-  //     if ([EVENTS.PARCEL_UPDATED, EVENTS.PARCEL_CREATED, EVENTS.STATUS_UPDATED, 
-  //          EVENTS.PAYMENT_RECEIVED, 'SYNC'].includes(update.type)) {
-  //       loadParcels();
-  //     }
-  //   });
-
-  
-  //   const refreshInterval = setInterval(() => {
-  //     loadParcels();
-  //   }, 5000); 
-
-  //   return () => {
-  //     unsubscribe();
-  //     clearInterval(refreshInterval);
-  //   };
-  // }, [user.branchId]);
 
   const filteredParcels = parcels.filter(parcel => {
     const matchesSearch = 
@@ -84,16 +64,14 @@ const MyParcels = ({ user }) => {
     );
     localStorage.setItem('parcels', JSON.stringify(updatedParcels));
 
-    // Update revenue
     const currentRevenue = JSON.parse(localStorage.getItem('revenue') || '0');
     const newRevenue = currentRevenue + parcel.totalAmount;
     localStorage.setItem('revenue', JSON.stringify(newRevenue));
 
-    // Add notification
     const notifications = JSON.parse(localStorage.getItem('notifications') || '[]');
     notifications.push({
       id: `notif-${Date.now()}`,
-      userId: 'admin@hot.co.zw',
+      userId: 'admin@hot.co.zw', 
       title: 'Payment Received',
       message: `Payment of $${parcel.totalAmount.toFixed(2)} received for parcel ${parcel.id}`,
       createdAt: new Date().toISOString()
@@ -106,161 +84,139 @@ const MyParcels = ({ user }) => {
   const getStatusColor = (status) => {
     switch (status) {
       case 'pending':
-        return 'bg-gray-100 text-gray-800';
+        return 'bg-gray-100 text-gray-800 ring-gray-600/20';
       case 'in_transit':
-        return 'bg-yellow-100 text-yellow-800';
+        return 'bg-amber-100 text-amber-800 ring-amber-600/20';
       case 'delivered':
-        return 'bg-green-100 text-green-800';
+        return 'bg-emerald-100 text-emerald-800 ring-emerald-600/20';
       case 'received':
-        return 'bg-blue-100 text-blue-800';
+        return 'bg-sky-100 text-sky-800 ring-sky-600/20';
       default:
-        return 'bg-gray-100 text-gray-800';
+        return 'bg-gray-100 text-gray-800 ring-gray-600/20';
     }
   };
 
   return (
-    <div>
+    <div className="max-w-[90rem] mx-auto px-4 sm:px-6 lg:px-8">
       <div className="sm:flex sm:items-center">
         <div className="sm:flex-auto">
-          <h1 className="text-2xl font-semibold text-gray-900">Branch Parcels</h1>
-          <p className="mt-2 text-sm text-gray-700">
-            View and manage parcels from your branch
+          <h1 className="text-4xl font-bold tracking-tight text-gray-900">Branch Parcels</h1>
+          <p className="mt-2 text-lg leading-8 text-gray-600">
+            View and manage all parcels from your branch in one place
           </p>
         </div>
       </div>
 
-      <div className="mt-4 flex flex-col sm:flex-row sm:items-center gap-4">
+      <div className="mt-8 flex flex-col sm:flex-row sm:items-center gap-6">
         <div className="relative flex-1">
           <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
             <SearchIcon className="h-5 w-5 text-gray-400" />
           </div>
           <input
             type="text"
-            className="pl-10 block w-full shadow-sm focus:ring-orange-500 focus:border-orange-500 sm:text-sm border-gray-300 rounded-md"
-            placeholder="Search parcels..."
+            className="pl-10 block w-full shadow-sm focus:ring-2 focus:ring-orange-500 focus:border-orange-500 sm:text-sm border-0 ring-1 ring-inset ring-gray-300 rounded-xl bg-white/5 px-4 py-3"
+            placeholder="Search by ID, receiver name or email..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
-        <select
-          className="block w-full sm:w-48 pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-orange-500 focus:border-orange-500 sm:text-sm rounded-md"
-          value={filterStatus}
-          onChange={(e) => setFilterStatus(e.target.value)}
-        >
-          <option value="all">All Status</option>
-          <option value="pending">Pending</option>
-          <option value="in_transit">In Transit</option>
-          <option value="delivered">Delivered</option>
-          <option value="received">Received</option>
-        </select>
+        <div className="relative">
+          <select
+            className="appearance-none block w-full sm:w-48 pl-3 pr-10 py-3 text-base border-0 ring-1 ring-inset ring-gray-300 focus:outline-none focus:ring-2 focus:ring-orange-500 rounded-xl bg-white/5"
+            value={filterStatus}
+            onChange={(e) => setFilterStatus(e.target.value)}
+          >
+            <option value="all">All Status</option>
+            <option value="pending">Pending</option>
+            <option value="in_transit">In Transit</option>
+            <option value="delivered">Delivered</option>
+            <option value="received">Received</option>
+          </select>
+          <ChevronDownIcon className="pointer-events-none absolute right-3 top-3 h-5 w-5 text-gray-400" />
+        </div>
       </div>
 
-      <div className="mt-8 flex flex-col">
-        <div className="-my-2 -mx-4 overflow-x-auto sm:-mx-6 lg:-mx-8">
-          <div className="inline-block min-w-full py-2 align-middle">
-            <div className="overflow-hidden shadow ring-1 ring-black ring-opacity-5 sm:rounded-lg">
-              <table className="min-w-full divide-y divide-gray-300">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
-                      Parcel ID
+      <div className="mt-8 flow-root">
+        <div className="rounded-2xl bg-white shadow-sm ring-1 ring-gray-200">
+          <div className="overflow-x-auto">
+            <div className="inline-block min-w-full">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead>
+                  <tr className="bg-gray-50/50">
+                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Parcel Details
                     </th>
-                    <th className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
-                      Receiver
-                    </th>
-                    <th className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
+                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Destination
                     </th>
-                    <th className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
-                      Status
+                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Status & Timeline
                     </th>
-                    <th className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
-                      Created
+                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Payment Info
                     </th>
-                    <th className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
-                      Amount
-                    </th>
-                    <th className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
-                      Float
-                    </th>
-                    <th className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
-                      Payment Status
-                    </th>
-                    <th className="relative py-3.5 pl-3 pr-4 sm:pr-6">
+                    <th className="relative px-6 py-4">
                       <span className="sr-only">Actions</span>
                     </th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200 bg-white">
                   {filteredParcels.map((parcel) => (
-                    <tr key={parcel.id}>
-                      <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                        {parcel.id}
-                      </td>
-                      <td className="px-3 py-4 text-sm text-gray-500">
-                        <div>
-                          <div className="font-medium text-gray-900">{parcel.receiverName}</div>
-                          <div className="text-gray-500">{parcel.receiverEmail}</div>
+                    <tr key={parcel.id} className="hover:bg-gray-50/50 transition-colors duration-200">
+                      <td className="px-6 py-4">
+                        <div className="flex flex-col gap-1">
+                          <span className="text-sm font-semibold text-gray-900">{parcel.id}</span>
+                          <span className="text-sm font-medium text-gray-700">{parcel.receiverName}</span>
+                          <span className="text-sm text-gray-500">{parcel.receiverEmail}</span>
                         </div>
                       </td>
-                      <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                        {parcel.destinationBranch || parcel.destination}
+                      <td className="px-6 py-4">
+                        <div className="text-sm font-medium text-gray-900">{parcel.destinationBranch || parcel.destination}</div>
+                        <div className="text-xs text-gray-500 mt-1">Created: {new Date(parcel.createdAt).toLocaleDateString()}</div>
                       </td>
-                      <td className="whitespace-nowrap px-3 py-4 text-sm">
-                        <span className={`inline-flex rounded-full px-2 text-xs font-semibold leading-5 ${getStatusColor(parcel.status)}`}>
+                      <td className="px-6 py-4">
+                        <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ring-1 ring-inset ${getStatusColor(parcel.status)}`}>
+                          {parcel.status === 'in_transit' && <TruckIcon className="mr-1.5 h-4 w-4" />}
+                          {parcel.status === 'delivered' && <CheckCircleIcon className="mr-1.5 h-4 w-4" />}
+                          {parcel.status === 'pending' && <ClockIcon className="mr-1.5 h-4 w-4" />}
                           {parcel.status}
                         </span>
                       </td>
-                      <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                        {new Date(parcel.createdAt).toLocaleDateString()}
-                      </td>
-                      <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                        ${parcel.amount?.toFixed(2) || '0.00'}
-                      </td>
-                      <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                        {parcel.floatAmount > 0 ? (
-                          <span className="text-orange-600">
-                            +${parcel.floatAmount.toFixed(2)}
-                          </span>
-                        ) : '-'}
-                      </td>
-                      <td className="whitespace-nowrap px-3 py-4 text-sm">
-                        <div className="flex flex-col gap-1">
-                          <span className={`inline-flex rounded-full px-2 text-xs font-semibold leading-5 ${
-                            parcel.isPaid
-                              ? 'bg-green-100 text-green-800'
-                              : 'bg-yellow-100 text-yellow-800'
+                      <td className="px-6 py-4">
+                        <div className="flex flex-col gap-1.5">
+                          <div className="text-sm font-medium text-gray-900">
+                            ${parcel.amount?.toFixed(2) || '0.00'}
+                            {parcel.floatAmount > 0 && (
+                              <span className="ml-2 text-orange-600">+${parcel.floatAmount.toFixed(2)}</span>
+                            )}
+                          </div>
+                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ring-1 ring-inset ${
+                            parcel.isPaid ? 'bg-emerald-100 text-emerald-800 ring-emerald-600/20' : 'bg-amber-100 text-amber-800 ring-amber-600/20'
                           }`}>
                             {parcel.isPaid ? 'Paid' : 'Pending'}
                           </span>
-                          {parcel.isPaid && (
-                            <span className="text-xs text-gray-500">
-                              {new Date(parcel.paidAt).toLocaleDateString()}
-                            </span>
-                          )}
                         </div>
                       </td>
-                      <td className="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
-                        <div className="flex justify-end space-x-4">
+                      <td className="px-6 py-4 text-right space-x-3">
+                        <button
+                          onClick={() => {
+                            setSelectedParcel(parcel);
+                            setShowUpdateModal(true);
+                          }}
+                          className="inline-flex items-center px-3.5 py-2 border border-transparent text-sm font-medium rounded-lg shadow-sm text-white bg-orange-600 hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500 transition-colors duration-200"
+                        >
+                          <ArrowPathIcon className="h-4 w-4 mr-1.5" />
+                          Update
+                        </button>
+                        {!parcel.isPaid && parcel.status === 'delivered' && (
                           <button
-                            onClick={() => {
-                              setSelectedParcel(parcel);
-                              setShowUpdateModal(true);
-                            }}
-                            className="text-orange-600 hover:text-orange-900"
+                            onClick={() => handlePaymentReceived(parcel)}
+                            className="inline-flex items-center px-3.5 py-2 border border-transparent text-sm font-medium rounded-lg shadow-sm text-white bg-emerald-600 hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 transition-colors duration-200"
                           >
-                            Update Status
+                            <CurrencyDollarIcon className="h-4 w-4 mr-1.5" />
+                            Mark Paid
                           </button>
-                          {!parcel.isPaid && parcel.status === 'delivered' && (
-                            <button
-                              onClick={() => handlePaymentReceived(parcel)}
-                              className="inline-flex items-center text-green-600 hover:text-green-900"
-                            >
-                              <CurrencyDollarIcon className="h-4 w-4 mr-1" />
-                              Mark Paid
-                            </button>
-                          )}
-                        </div>
+                        )}
                       </td>
                     </tr>
                   ))}
@@ -283,4 +239,4 @@ const MyParcels = ({ user }) => {
   );
 };
 
-export default MyParcels; 
+export default MyParcels;

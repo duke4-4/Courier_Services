@@ -19,6 +19,13 @@ const Login = ({ setUser }) => {
     setLoading(true);
     setError('');
 
+    // Log form data to console
+    console.log('Login Form Data:', {
+      email: formData.email,
+      password: formData.password,
+      timestamp: new Date().toISOString()
+    });
+
     try {
       const user = findUserByEmail(formData.email);
       
